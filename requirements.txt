@@ -1,0 +1,7 @@
+Flask>=3.0,<4.0
+Flask-SQLAlchemy>=3.1,<4.0
+Markdown>=3.6,<4.0
+click>=8.0
+gunicorn>=21.0
+pypdf>=4.0   # PDF 转文章（纯本地文本提取，无重依赖）
+cryptography>=42.0.1   # SSL 证书解析 / 校验（后台 SSL 上传功能）

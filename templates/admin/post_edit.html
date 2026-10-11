@@ -1,0 +1,121 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ '编辑文章' if post else '写新文章' }}{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/editor.css') }}">
+{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ '编辑文章' if post else '写新文章' }}</h1>
+    <p class="sub">{% if post and post.render_mode == 'pdf' %}PDF 原版式阅读文章 · 正文由浏览器渲染 PDF 呈现，下方可写一段 Markdown 导读{% else %}Markdown / HTML 双模式写作，支持图片、视频、PDF 等文件引用{% endif %}</p>
+  </div>
+  <a class="btn ghost" href="{{ url_for('admin.posts') }}">返回列表</a>
+</div>
+
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="panel glass">
+    <div class="form-grid">
+      <div class="form-item full">
+        <label>标题 <span style="color: #d14a2e;">*</span></label>
+        <input type="text" name="title" required value="{{ post.title if post else '' }}" placeholder="请输入文章标题">
+      </div>
+      <div class="form-item">
+        <label>访问别名（Slug，留空自动生成）</label>
+        <input type="text" name="slug" value="{{ post.slug if post else '' }}" placeholder="例如 my-first-post">
+      </div>
+      <div class="form-item">
+        <label>分类</label>
+        <select name="category_id">
+          <option value="">未分类</option>
+          {% for c in categories %}
+          <option value="{{ c.id }}" {{ 'selected' if post and post.category_id == c.id }}>{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-item">
+        <label>标签（逗号分隔，不存在会自动创建）</label>
+        <input type="text" name="tags" value="{{ tag_str if tag_str else '' }}" placeholder="Flask, Python, 生活">
+      </div>
+      <div class="form-item">
+        <label>状态</label>
+        <select name="status">
+          {% set cur = post.status if post else 'draft' %}
+          <option value="draft" {{ 'selected' if cur == 'draft' }}>草稿</option>
+          <option value="published" {{ 'selected' if cur == 'published' }}>立即发布</option>
+          <option value="scheduled" {{ 'selected' if cur == 'scheduled' }}>定时发布</option>
+        </select>
+      </div>
+      <div class="form-item">
+        <label>发布时间（定时发布时生效）</label>
+        <input type="datetime-local" name="published_at" value="{{ pub_value if pub_value else '' }}">
+      </div>
+      <div class="form-item full">
+        <label>摘要（留空自动截取）</label>
+        <input type="text" name="summary" value="{{ post.summary if post else '' }}" placeholder="文章摘要，用于列表页展示">
+      </div>
+      <div class="form-item full">
+        <label>封面图 URL（可选，也可先在编辑器里上传图片后复制链接）</label>
+        <input type="text" name="cover" value="{{ post.cover if post else '' }}" placeholder="https://example.com/cover.jpg 或 /uploads/image/xxx.jpg">
+      </div>
+      <div class="form-item full">
+        <label class="check-row">
+          <input type="checkbox" name="is_top" {{ 'checked' if post and post.is_top }}> 置顶文章（列表页优先展示）
+        </label>
+      </div>
+      <div class="form-item full">
+        <label class="check-row">
+          <input type="checkbox" name="allow_comment" value="1" {{ 'checked' if not post or post.allow_comment }}> 允许评论（关闭后前台显示「本文已关闭评论」）
+        </label>
+      </div>
+    </div>
+  </div>
+
+  {% if post and post.render_mode == 'pdf' %}
+  {# ---- PDF 原版式文章：不显示双模式编辑器，提供 PDF 信息 + 可选导读 ---- #}
+  <input type="hidden" name="render_mode" value="pdf">
+  <div class="panel glass" style="margin-top: 18px; padding: 18px 22px;">
+    <div style="display: flex; gap: 14px; align-items: flex-start;">
+      <div style="font-size: 34px; line-height: 1;">📄</div>
+      <div style="flex: 1;">
+        <p style="margin: 0 0 4px;"><strong>PDF 原版式文章</strong> <span class="badge">PDF</span></p>
+        <p style="margin: 0 0 8px; font-size: 13px; color: var(--text-3);">
+          正文会以「网页阅读器」形式呈现：原 PDF 的图片 / 表格 / 排版 100% 保真，读者无需下载即可在线阅读。
+          渲染在访问者浏览器完成，不消耗服务器算力。
+        </p>
+        {% if post.pdf_url %}
+        <p style="margin: 0; font-size: 13px;">
+          <a href="{{ post.pdf_url }}" target="_blank" rel="noopener">查看 / 下载原 PDF</a>
+        </p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="panel glass" style="margin-top: 14px; padding: 16px 22px;">
+    <label style="font-size: 13px; font-weight: 500;">导读（可选，Markdown）——显示在 PDF 阅读器上方</label>
+    <textarea name="content" rows="5" style="width: 100%; margin-top: 8px; box-sizing: border-box;"
+      placeholder="可写一段背景介绍或阅读指引，例如：这是某产品说明书的存档页，供快速查阅……">{{ post.content if post else '' }}</textarea>
+  </div>
+  {% else %}
+  {% set ed_content = post.content if post else '' %}
+  {% set ed_content_html = post.content_html if post else '' %}
+  {% set qp_mode = request.args.get('mode') %}
+  {% set ed_render_mode = qp_mode if qp_mode in ('markdown','html') else (post.render_mode if post else 'markdown') %}
+  {% include "admin/_editor.html" %}
+  {% endif %}
+
+  <div style="display: flex; gap: 12px; margin-top: 20px;">
+    <button class="btn" type="submit">保存</button>
+    {% if post and post.status == 'published' %}
+    <a class="btn ghost" href="{{ url_for('main.post', slug=post.slug) }}" target="_blank">查看前台</a>
+    {% endif %}
+    <a class="btn ghost" href="{{ url_for('admin.posts') }}">取消</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/marked/marked.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/turndown/turndown.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+{% endblock %}

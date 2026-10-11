@@ -1,0 +1,96 @@
+/* 中央自定义确认 modal —— 替代浏览器原生 confirm()，
+   原生 confirm 在右上角弹出且样式不可控；这里用居中毛玻璃弹窗。
+   触发：任何 form[data-confirm] 或 button[data-confirm-msg] 提交/点击时
+   拦截 → 弹 modal → 用户点确定再真实提交 */
+
+.wb-modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(20, 18, 14, 0.42);
+  backdrop-filter: blur(6px) saturate(140%);
+  -webkit-backdrop-filter: blur(6px) saturate(140%);
+  z-index: 9990;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  animation: wb-modal-fade 0.18s ease;
+}
+
+@keyframes wb-modal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.wb-modal {
+  width: 100%; max-width: 460px;
+  background: var(--glass-bg-strong, rgba(255, 252, 246, 0.92));
+  border: 1px solid var(--glass-border, rgba(255, 250, 240, 0.7));
+  border-radius: 14px;
+  padding: 22px 22px 18px;
+  box-shadow:
+    0 20px 60px -20px rgba(20, 18, 14, 0.35),
+    0 6px 20px -8px rgba(20, 18, 14, 0.18);
+  animation: wb-modal-rise 0.22s cubic-bezier(.18, .89, .32, 1.2);
+}
+
+@keyframes wb-modal-rise {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.wb-modal-title {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 16px; font-weight: 600;
+  color: var(--text-1, #2a2520);
+  margin-bottom: 10px;
+}
+.wb-modal-title::before {
+  content: ""; width: 4px; height: 18px; border-radius: 2px;
+  background: var(--primary, #d18a4d);
+}
+
+.wb-modal-body {
+  font-size: 14px; line-height: 1.6;
+  color: var(--text-2, #4a443e);
+  padding: 4px 2px 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.wb-modal-extra {
+  font-size: 12px;
+  color: var(--text-3, #8a8079);
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-top: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  word-break: break-all;
+}
+
+.wb-modal-actions {
+  display: flex; justify-content: flex-end; gap: 10px;
+  margin-top: 4px;
+}
+
+.wb-modal-btn {
+  font: inherit; cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border, rgba(180, 170, 155, 0.5));
+  background: var(--bg-soft, rgba(255, 255, 255, 0.55));
+  color: var(--text-1, #2a2520);
+  transition: background 0.15s, transform 0.05s;
+}
+.wb-modal-btn:hover { background: rgba(255, 255, 255, 0.75); }
+.wb-modal-btn:active { transform: scale(0.98); }
+
+.wb-modal-btn.danger {
+  background: #d04a3a;
+  color: #fff;
+  border-color: #b03a2a;
+}
+.wb-modal-btn.danger:hover { background: #c03a2a; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-modal-backdrop { animation: none; }
+  .wb-modal { animation: none; }
+}

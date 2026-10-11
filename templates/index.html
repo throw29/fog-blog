@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{{ SITE.site_name }} · {{ SITE.site_subtitle }}{% endblock %}
+{% block page_title %}欢迎来到 {{ SITE.site_name }}{% endblock %}
+{% block page_subtitle %}{{ SITE.site_subtitle }}{% endblock %}
+
+{% block content %}
+<div class="layout">
+  <div>
+    {% if posts %}
+    <div class="home-tabs">
+      <a href="{{ url_for('main.index', tab='latest') }}" class="{{ 'active' if tab == 'latest' }}">最新发布</a>
+      <a href="{{ url_for('main.index', tab='hot') }}" class="{{ 'active' if tab == 'hot' }}">🔥 最热互动</a>
+    </div>
+    {% endif %}
+
+    {% for p in posts %}
+    <article class="post-card glass">
+      <div class="post-card-top">
+        {% if p.is_top %}<span class="badge">置顶</span>{% endif %}
+        {% if p.render_mode == 'pdf' %}<span class="badge" style="background: rgba(209,74,46,.1); color:#d14a2e;">PDF</span>{% endif %}
+        {% if p.category %}<a class="badge" href="{{ url_for('main.category', slug=p.category.slug) }}">{{ p.category.name }}</a>{% endif %}
+        <span>{{ p.published_at.strftime('%Y-%m-%d') }}</span>
+      </div>
+      <h2><a href="{{ url_for('main.post', slug=p.slug) }}">{{ p.title }}</a></h2>
+      {% if p.cover %}
+      <div style="margin: 12px 0 10px; border-radius: 12px; overflow: hidden;">
+        <img src="{{ p.cover }}" alt="{{ p.title }}" style="width: 100%; display: block;">
+      </div>
+      {% endif %}
+      <p class="summary">{{ p.get_summary() }}</p>
+      <div class="post-meta">
+        <span>{{ p.views }} 阅读</span>
+        <span>{{ p.likes }} 点赞</span>
+        <span>{{ p.comment_count }} 评论</span>
+        <span style="margin-left: auto;">{{ p.published_at.strftime('%H:%M') }} 发布</span>
+      </div>
+    </article>
+    {% else %}
+    <div class="empty glass">
+      <div class="icon">◌</div>
+      <p>还没有文章，稍后再来看看吧</p>
+      {% if is_logged_in %}
+      <p style="margin-top: 12px;">
+        <a class="btn" style="font-size: 13px;" href="{{ url_for('admin.post_new') }}">去写第一篇文章 →</a>
+      </p>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    {% if pager.pages > 1 %}
+    <nav class="pagination">
+      {% set prev_url = url_for('main.index', page=pager.prev_num, tab=tab) if tab == 'hot' else url_for('main.index', page=pager.prev_num) %}
+      {% set next_url = url_for('main.index', page=pager.next_num, tab=tab) if tab == 'hot' else url_for('main.index', page=pager.next_num) %}
+      {% if pager.has_prev %}<a href="{{ prev_url }}">上一页</a>{% endif %}
+      {% for i in range(1, pager.pages + 1) %}
+        {% if i == pager.page %}
+        <span class="current">{{ i }}</span>
+        {% else %}
+        {% set page_url = url_for('main.index', page=i, tab=tab) if tab == 'hot' else url_for('main.index', page=i) %}
+        <a href="{{ page_url }}">{{ i }}</a>
+        {% endif %}
+      {% endfor %}
+      {% if pager.has_next %}<a href="{{ next_url }}">下一页</a>{% endif %}
+    </nav>
+    {% endif %}
+
+    {# 文章很少时的「继续逛逛」区：分类入口 + 归档，避免版面空洞 #}
+    {% if posts and pager.pages <= 1 and posts|length <= 2 %}
+    <div class="widget glass explore-box">
+      <h3>内容还在生长 · 先逛逛这些</h3>
+      {% if nav_categories %}
+      <div class="explore-chips">
+        {% for c in nav_categories %}
+        <a class="chip" href="{{ url_for('main.category', slug=c.slug) }}">{{ c.name }}</a>
+        {% endfor %}
+        <a class="chip" href="{{ url_for('main.archive') }}">🗂 全部归档</a>
+      </div>
+      {% else %}
+      <p class="explore-empty">博主正在加紧写作，稍后会有更多内容上线～</p>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+  {% include "sidebar.html" %}
+</div>
+{% endblock %}

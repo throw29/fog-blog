@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}服务器开小差了 · {{ SITE.site_name }}{% endblock %}
+{% block content %}
+<div class="layout layout-full">
+  <div class="empty glass" style="padding: 70px 20px;">
+    <div style="font-size: 46px; font-weight: 500; color: var(--accent);">500</div>
+    <p style="margin-top: 14px;">服务器开小差了，请稍后再试</p>
+    <p style="margin-top: 20px;"><a class="btn" href="{{ url_for('main.index') }}">返回首页</a></p>
+  </div>
+</div>
+{% endblock %}

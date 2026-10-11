@@ -1,0 +1,93 @@
+{% extends "admin/base.html" %}
+{% block title %}用户管理{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>用户管理</h1>
+    <p class="sub">后台账号 {{ staff_count }} 个</p>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <a href="{{ url_for('admin.users') }}" class="active">后台账号</a>
+  <form method="get" style="margin-left: auto; display: flex; gap: 8px;">
+    <input type="search" name="q" value="{{ q }}" placeholder="搜索用户名/昵称/邮箱">
+    <button class="btn sm" type="submit">搜索</button>
+  </form>
+</div>
+
+<div class="panel glass" style="max-width: 720px;">
+  <h2>新建后台账号（给同事开号）</h2>
+  <form method="post" action="{{ url_for('admin.user_new') }}" class="form-inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="text" name="username" placeholder="用户名" required style="width: 160px;">
+    <input type="text" name="nickname" placeholder="昵称（默认同用户名）" style="width: 160px;">
+    <input type="password" name="password" placeholder="初始密码（≥6位）" required style="width: 160px;">
+    <button class="btn sm" type="submit">创建</button>
+  </form>
+</div>
+
+<div class="panel glass">
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>用户</th><th>登录名</th><th>邮箱</th><th>状态</th>
+          <th>最近登录</th><th>注册时间</th><th style="width: 210px;">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td class="cell-title">
+            <span class="user-cell">
+              {% if u.avatar %}<img src="{{ u.avatar }}" alt="">{% else %}<span class="user-initial">{{ (u.nickname or u.username)[:1] }}</span>{% endif %}
+              {{ u.nickname }}
+            </span>
+          </td>
+          <td class="cell-muted">{{ u.username }}</td>
+          <td class="cell-muted">{{ u.email or '-' }}</td>
+          <td>
+            <span class="badge {{ 'approved' if u.is_active else 'pending' }}">{{ '启用' if u.is_active else '停用' }}</span>
+          </td>
+          <td class="cell-muted">{{ u.last_login_at.strftime('%Y-%m-%d %H:%M') if u.last_login_at else '从未' }}</td>
+          <td class="cell-muted">{{ u.created_at.strftime('%Y-%m-%d') }}</td>
+          <td>
+            <div class="btn-row">
+              <form method="post" action="{{ url_for('admin.user_reset', uid=u.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="password" value="" data-reset-pw="{{ u.id }}">
+                <button class="btn sm ghost" type="submit" onclick="return askPassword('{{ u.id }}')">重置密码</button>
+              </form>
+              <form method="post" action="{{ url_for('admin.user_toggle', uid=u.id) }}" {% if u.id == session.get('user_id') %}data-noself{% endif %}>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn sm ghost" type="submit" {% if u.id == session.get('user_id') %}disabled title="不能操作自己"{% endif %}>{{ '停用' if u.is_active else '启用' }}</button>
+              </form>
+              <form method="post" action="{{ url_for('admin.user_delete', uid=u.id) }}" data-confirm="确定删除该账号吗？">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn sm danger-ghost" type="submit" {% if u.id == session.get('user_id') %}disabled title="不能删除自己"{% endif %}>删除</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="text-align:center; color: var(--text-3); padding: 30px;">
+          暂无后台账号
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function askPassword(uid) {
+  var pw = prompt('请输入新密码（至少 6 位）：');
+  if (pw === null) return false;
+  if (pw.length < 6) { alert('密码至少 6 位'); return false; }
+  var input = document.querySelector('input[data-reset-pw="' + uid + '"]');
+  if (input) input.value = pw;
+  return true;
+}
+</script>
+{% endblock %}

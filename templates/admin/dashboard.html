@@ -1,0 +1,110 @@
+{% extends "admin/base.html" %}
+{% block title %}仪表板{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>仪表板</h1>
+    <p class="sub">欢迎回来，这里是博客的运行概况</p>
+  </div>
+  <a class="btn" href="{{ url_for('admin.post_new') }}">写新文章</a>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card glass c1">
+    <div class="label">全部文章</div>
+    <div class="value">{{ total_posts }}</div>
+    <div class="extra">已发布 {{ published }} · 草稿 {{ drafts }}</div>
+  </div>
+  <div class="stat-card glass c2">
+    <div class="label">总浏览量</div>
+    <div class="value">{{ total_views }}</div>
+    <div class="extra">近 7 天发布 {{ posts_week }} 篇</div>
+  </div>
+  <div class="stat-card glass c3">
+    <div class="label">评论</div>
+    <div class="value">{{ total_comments }}</div>
+    <div class="extra">待审核 {{ pending_comments }} · 近 7 天 {{ comments_week }} 条</div>
+  </div>
+  <div class="stat-card glass c4">
+    <div class="label">分类 / 标签</div>
+    <div class="value">{{ total_categories }} / {{ total_tags }}</div>
+    <div class="extra">持续整理内容中</div>
+  </div>
+</div>
+
+<div class="two-col">
+  <div>
+    <div class="panel glass">
+      <h2>最近文章</h2>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>标题</th><th>状态</th><th>浏览量</th><th>更新时间</th></tr></thead>
+          <tbody>
+            {% for p in recent_posts %}
+            <tr>
+              <td class="cell-title"><a href="{{ url_for('admin.post_edit', pid=p.id) }}">{{ p.title }}</a></td>
+              <td><span class="badge {{ p.status }}">{{ { 'published': '已发布', 'draft': '草稿', 'scheduled': '定时' }[p.status] }}</span></td>
+              <td class="cell-muted">{{ p.views }}</td>
+              <td class="cell-muted">{{ p.updated_at.strftime('%m-%d %H:%M') }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" style="text-align:center; color: var(--text-3); padding: 20px;">还没有文章</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel glass">
+      <h2>最新评论</h2>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>评论者</th><th>内容</th><th>状态</th><th>时间</th></tr></thead>
+          <tbody>
+            {% for c in recent_comments %}
+            <tr>
+              <td style="white-space: nowrap;">{{ c.nickname }}</td>
+              <td class="cell-title">{{ c.content }}</td>
+              <td><span class="badge {{ 'approved' if c.is_approved else 'pending' }}">{{ '已通过' if c.is_approved else '待审核' }}</span></td>
+              <td class="cell-muted">{{ c.created_at.strftime('%m-%d %H:%M') }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" style="text-align:center; color: var(--text-3); padding: 20px;">还没有评论</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel glass">
+      <h2>分类文章分布</h2>
+      {% if cat_stats %}
+      <div class="chart-box">
+        {% set max_count = cat_stats | map(attribute='count') | max %}
+        {% for c in cat_stats %}
+        <div class="bar-row">
+          <span class="name">{{ c.name }}</span>
+          <div class="bar-track"><div class="bar-fill" style="width: {{ (c.count / max_count * 100) | round }}%;"></div></div>
+          <span class="num">{{ c.count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p style="color: var(--text-3); font-size: 13px;">暂无数据</p>
+      {% endif %}
+    </div>
+
+    <div class="panel glass">
+      <h2>快捷操作</h2>
+      <div class="btn-row">
+        <a class="btn sm" href="{{ url_for('admin.post_new') }}">写文章</a>
+        <a class="btn sm ghost" href="{{ url_for('admin.categories') }}">分类</a>
+        <a class="btn sm ghost" href="{{ url_for('admin.comments', status='pending') }}">待审评论</a>
+        <a class="btn sm ghost" href="{{ url_for('admin.settings') }}">设置</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ page.title }} · {{ SITE.site_name }}{% endblock %}
+{% block page_title %}{{ page.title }}{% endblock %}
+
+{% block content %}
+<div class="layout">
+  <div>
+    <article class="post-page glass">
+      <div class="post-content">
+        {{ content_html | safe }}
+      </div>
+    </article>
+  </div>
+  {% include "sidebar.html" %}
+</div>
+{% endblock %}

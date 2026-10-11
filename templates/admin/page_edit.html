@@ -1,0 +1,59 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ '编辑页面' if page else '新建页面' }}{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/editor.css') }}">
+{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ '编辑页面' if page else '新建页面' }}</h1>
+    <p class="sub">Markdown / HTML 双模式编辑独立页面</p>
+  </div>
+  <a class="btn ghost" href="{{ url_for('admin.pages') }}">返回列表</a>
+</div>
+
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="panel glass">
+    <div class="form-grid">
+      <div class="form-item">
+        <label>标题 <span style="color: #d14a2e;">*</span></label>
+        <input type="text" name="title" required value="{{ page.title if page else '' }}" placeholder="例如：关于我">
+      </div>
+      <div class="form-item">
+        <label>别名（Slug，留空自动生成）</label>
+        <input type="text" name="slug" value="{{ page.slug if page else '' }}" placeholder="例如 about">
+      </div>
+      <div class="form-item">
+        <label>排序（小的在前）</label>
+        <input type="number" name="order" value="{{ page.order if page else 0 }}">
+      </div>
+      <div class="form-item">
+        <label class="check-row">
+          <input type="checkbox" name="is_show" {{ 'checked' if (page and page.is_show) or not page }}> 在前台导航中显示
+        </label>
+      </div>
+    </div>
+  </div>
+
+  {% set ed_content = page.content if page else '' %}
+  {% set ed_content_html = page.content_html if page else '' %}
+  {% set qp_mode = request.args.get('mode') %}
+  {% set ed_render_mode = qp_mode if qp_mode in ('markdown','html') else (page.render_mode if page else 'markdown') %}
+  {% include "admin/_editor.html" %}
+
+  <div style="display: flex; gap: 12px; margin-top: 20px;">
+    <button class="btn" type="submit">保存</button>
+    {% if page %}
+    <a class="btn ghost" href="{{ url_for('main.page', slug=page.slug) }}" target="_blank">查看前台</a>
+    {% endif %}
+    <a class="btn ghost" href="{{ url_for('admin.pages') }}">取消</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/marked/marked.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/turndown/turndown.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+{% endblock %}

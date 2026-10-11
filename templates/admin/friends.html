@@ -1,0 +1,77 @@
+{% extends "admin/base.html" %}
+{% block title %}友情链接{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>友情链接</h1>
+    <p class="sub">共 {{ friends | length }} 条友链</p>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="panel glass">
+    <h2>{{ '编辑友链' if edit_f else '添加友链' }}</h2>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-item">
+        <label>站点名称 <span style="color: #d14a2e;">*</span></label>
+        <input type="text" name="name" required value="{{ edit_f.name if edit_f else '' }}" placeholder="例如：张三的博客">
+      </div>
+      <div class="form-item">
+        <label>链接地址 <span style="color: #d14a2e;">*</span></label>
+        <input type="url" name="url" required value="{{ edit_f.url if edit_f else '' }}" placeholder="https://example.com">
+      </div>
+      <div class="form-item">
+        <label>描述</label>
+        <input type="text" name="description" value="{{ edit_f.description if edit_f else '' }}" placeholder="一句话介绍">
+      </div>
+      <div class="form-item">
+        <label>头像 URL（留空显示首字母）</label>
+        <input type="url" name="avatar" value="{{ edit_f.avatar if edit_f else '' }}" placeholder="https://example.com/avatar.png">
+      </div>
+      <div class="form-item">
+        <label>排序（小的在前）</label>
+        <input type="number" name="order" value="{{ edit_f.order if edit_f else 0 }}">
+      </div>
+      <div class="form-item">
+        <label class="check-row">
+          <input type="checkbox" name="is_show" {{ 'checked' if (edit_f and edit_f.is_show) or not edit_f }}> 前台展示
+        </label>
+      </div>
+      <div class="btn-row">
+        <button class="btn" type="submit">保存</button>
+        {% if edit_f %}<a class="btn ghost" href="{{ url_for('admin.friends') }}">取消编辑</a>{% endif %}
+      </div>
+    </form>
+  </div>
+
+  <div class="panel glass">
+    <h2>友链列表</h2>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>名称</th><th>描述</th><th>显示</th><th>操作</th></tr></thead>
+        <tbody>
+          {% for f in friends %}
+          <tr>
+            <td class="cell-title"><a href="{{ f.url }}" target="_blank" rel="noopener">{{ f.name }}</a></td>
+            <td class="cell-muted" style="max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ f.description }}</td>
+            <td><span class="badge {{ 'approved' if f.is_show else 'draft' }}">{{ '显示' if f.is_show else '隐藏' }}</span></td>
+            <td>
+              <div class="btn-row">
+                <a class="btn sm ghost" href="{{ url_for('admin.friends', edit=f.id) }}">编辑</a>
+                <form method="post" action="{{ url_for('admin.friend_delete', fid=f.id) }}" data-confirm="确定删除友链「{{ f.name }}」吗？">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn sm danger-ghost" type="submit">删除</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" style="text-align:center; color: var(--text-3); padding: 24px;">暂无友链</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

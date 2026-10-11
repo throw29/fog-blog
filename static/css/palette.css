@@ -1,0 +1,121 @@
+/* ============================================================
+   配色方案 Palette（毛玻璃保持，仅换主色/渐变光斑/玻璃底色）
+   html[data-palette="amber|sea|mint|grape|rose"]
+   —— 默认 amber 即 style.css :root 原值，此处无需覆盖。
+   ============================================================ */
+
+/* ---------- 1. sea · 海盐蓝 ---------- */
+html[data-palette="sea"] {
+  --primary: #0e7490;
+  --primary-deep: #155e75;
+  --accent: #0891b2;
+  --primary-rgb: 14, 116, 144;
+  --accent-rgb: 8, 145, 178;
+  --page-bg: linear-gradient(160deg, #eff7fb 0%, #e2eef6 45%, #d6eaf3 100%);
+  --orb-1: #7dd3fc;
+  --orb-2: #a5dcf5;
+  --orb-3: #c2e6f7;
+}
+html[data-theme="dark"][data-palette="sea"] {
+  --primary: #38bdf8;
+  --primary-deep: #7dd3fc;
+  --accent: #22d3ee;
+  --primary-rgb: 56, 189, 248;
+  --accent-rgb: 34, 211, 238;
+  --page-bg-dark: linear-gradient(160deg, #0b1622 0%, #0f1d2c 50%, #122433 100%);
+  --glass-bg: rgba(22, 36, 50, 0.6);
+  --glass-bg-strong: rgba(27, 44, 60, 0.85);
+  --glass-border: rgba(125, 211, 252, 0.16);
+}
+
+/* ---------- 2. mint · 抹茶青 ---------- */
+html[data-palette="mint"] {
+  --primary: #0f766e;
+  --primary-deep: #115e59;
+  --accent: #14b8a6;
+  --primary-rgb: 15, 118, 110;
+  --accent-rgb: 20, 184, 166;
+  --page-bg: linear-gradient(160deg, #f1f9f6 0%, #e2f1ec 45%, #d6ece6 100%);
+  --orb-1: #5eead4;
+  --orb-2: #93e8d5;
+  --orb-3: #b8efe2;
+}
+html[data-theme="dark"][data-palette="mint"] {
+  --primary: #2dd4bf;
+  --primary-deep: #99f6e4;
+  --accent: #34d399;
+  --primary-rgb: 45, 212, 191;
+  --accent-rgb: 52, 211, 153;
+  --page-bg-dark: linear-gradient(160deg, #081614 0%, #0c1f1c 50%, #0e2522 100%);
+  --glass-bg: rgba(18, 40, 36, 0.6);
+  --glass-bg-strong: rgba(22, 48, 43, 0.85);
+  --glass-border: rgba(94, 234, 212, 0.16);
+}
+
+/* ---------- 3. grape · 葡萄紫 ---------- */
+html[data-palette="grape"] {
+  --primary: #7c3aed;
+  --primary-deep: #6d28d9;
+  --accent: #a855f7;
+  --primary-rgb: 124, 58, 237;
+  --accent-rgb: 168, 85, 247;
+  --page-bg: linear-gradient(160deg, #f6f2fb 0%, #ece5f6 45%, #e5daf3 100%);
+  --orb-1: #c4b5fd;
+  --orb-2: #d3c0f5;
+  --orb-3: #e2d5f7;
+}
+html[data-theme="dark"][data-palette="grape"] {
+  --primary: #a78bfa;
+  --primary-deep: #c4b5fd;
+  --accent: #c084fc;
+  --primary-rgb: 167, 139, 250;
+  --accent-rgb: 192, 132, 252;
+  --page-bg-dark: linear-gradient(160deg, #110b1e 0%, #181029 50%, #1e1533 100%);
+  --glass-bg: rgba(34, 24, 56, 0.6);
+  --glass-bg-strong: rgba(41, 29, 66, 0.85);
+  --glass-border: rgba(196, 181, 253, 0.16);
+}
+
+/* ---------- 4. rose · 蔷薇粉 ---------- */
+html[data-palette="rose"] {
+  --primary: #be185d;
+  --primary-deep: #9d174d;
+  --accent: #ec4899;
+  --primary-rgb: 190, 24, 93;
+  --accent-rgb: 236, 72, 153;
+  --page-bg: linear-gradient(160deg, #fdf1f5 0%, #fbe4ec 45%, #f9dae5 100%);
+  --orb-1: #f9a8d4;
+  --orb-2: #f7c0da;
+  --orb-3: #fbd6e4;
+}
+html[data-theme="dark"][data-palette="rose"] {
+  --primary: #f472b6;
+  --primary-deep: #f9a8d4;
+  --accent: #fb7185;
+  --primary-rgb: 244, 114, 182;
+  --accent-rgb: 251, 113, 133;
+  --page-bg-dark: linear-gradient(160deg, #1e0d16 0%, #29121e 50%, #301522 100%);
+  --glass-bg: rgba(52, 24, 40, 0.6);
+  --glass-bg-strong: rgba(60, 28, 46, 0.85);
+  --glass-border: rgba(249, 168, 212, 0.16);
+}
+
+/* 深色下导航栏 / 输入框等背景随玻璃底色微调（避免默认暖棕玻璃串色） */
+html[data-theme="dark"][data-palette] .navbar { background: rgba(14, 18, 24, 0.72); }
+html[data-theme="dark"][data-palette="mint"] .navbar { background: rgba(10, 22, 20, 0.72); }
+html[data-theme="dark"][data-palette="grape"] .navbar { background: rgba(18, 12, 32, 0.72); }
+html[data-theme="dark"][data-palette="rose"] .navbar { background: rgba(28, 14, 22, 0.72); }
+html[data-theme="dark"][data-palette="sea"] .navbar { background: rgba(10, 20, 30, 0.72); }
+
+html[data-theme="dark"][data-palette] body {
+  background: var(--page-bg-dark, linear-gradient(160deg, #171310 0%, #1e1712 45%, #251a10 100%));
+}
+
+/* admin 后台 body 的暗色玻璃随 palette 的 dark 底色走 */
+html[data-theme="dark"][data-palette] .admin-shell {
+  background: var(--page-bg-dark, linear-gradient(160deg, #171310 0%, #1e1712 45%, #251a10 100%));
+}
+html[data-theme="dark"][data-palette] .aside {
+  background: var(--glass-bg-strong, rgba(45, 36, 26, 0.85));
+  border-right-color: var(--glass-border, rgba(255, 215, 160, 0.1));
+}

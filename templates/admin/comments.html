@@ -1,0 +1,56 @@
+{% extends "admin/base.html" %}
+{% block title %}评论管理{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>评论管理</h1>
+    <p class="sub">共 {{ comments | length }} 条{{ '（待审核）' if status == 'pending' else '' }}</p>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <a href="{{ url_for('admin.comments') }}" class="{{ 'active' if not status }}">全部</a>
+  <a href="{{ url_for('admin.comments', status='pending') }}" class="{{ 'active' if status == 'pending' }}">待审核</a>
+  <a href="{{ url_for('admin.comments', status='approved') }}" class="{{ 'active' if status == 'approved' }}">已通过</a>
+</div>
+
+<div class="panel glass">
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>评论者</th><th>内容</th><th>所属文章</th><th>状态</th><th>时间</th><th style="width: 160px;">操作</th></tr></thead>
+      <tbody>
+        {% for c in comments %}
+        <tr>
+          <td style="white-space: nowrap;">
+            <div>{{ c.nickname }}</div>
+            {% if c.email %}<div class="cell-muted" style="font-size: 12px;">{{ c.email }}</div>{% endif %}
+          </td>
+          <td class="cell-title" style="max-width: 260px;">{{ c.content }}</td>
+          <td class="cell-muted" style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            {% if c.post %}<a href="{{ url_for('main.post', slug=c.post.slug) }}" target="_blank">{{ c.post.title }}</a>{% else %}留言板{% endif %}
+          </td>
+          <td><span class="badge {{ 'approved' if c.is_approved else 'pending' }}">{{ '已通过' if c.is_approved else '待审核' }}</span></td>
+          <td class="cell-muted">{{ c.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>
+            <div class="btn-row">
+              {% if not c.is_approved %}
+              <form method="post" action="{{ url_for('admin.comment_approve', cid=c.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn sm" type="submit">通过</button>
+              </form>
+              {% endif %}
+              <form method="post" action="{{ url_for('admin.comment_delete', cid=c.id) }}" data-confirm="确定删除这条评论吗？">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn sm danger-ghost" type="submit">删除</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="text-align:center; color: var(--text-3); padding: 28px;">暂无评论</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

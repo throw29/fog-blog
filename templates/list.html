@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · {{ SITE.site_name }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% if q %}{% block page_subtitle %}共找到 {{ pager.total }} 条结果{% endblock %}{% endif %}
+
+{% block content %}
+<div class="layout">
+  <div>
+    {% for p in posts %}
+    <article class="post-card glass">
+      <div class="post-card-top">
+        {% if p.is_top %}<span class="badge">置顶</span>{% endif %}
+        {% if p.render_mode == 'pdf' %}<span class="badge" style="background: rgba(209,74,46,.1); color:#d14a2e;">PDF</span>{% endif %}
+        {% if p.category %}<a class="badge" href="{{ url_for('main.category', slug=p.category.slug) }}">{{ p.category.name }}</a>{% endif %}
+        <span>{{ p.published_at.strftime('%Y-%m-%d') }}</span>
+      </div>
+      <h2><a href="{{ url_for('main.post', slug=p.slug) }}">{{ p.title }}</a></h2>
+      <p class="summary">{{ p.get_summary() }}</p>
+      <div class="post-meta">
+        <span>{{ p.views }} 阅读</span>
+        <span>{{ p.likes }} 点赞</span>
+        <span>{{ p.comment_count }} 评论</span>
+      </div>
+    </article>
+    {% else %}
+    <div class="empty glass">
+      <div class="icon">◌</div>
+      <p>{% if q %}没有找到与「{{ q }}」相关的内容，换个关键词试试{% else %}这里空空如也{% endif %}</p>
+    </div>
+    {% endfor %}
+
+    {% if pager.pages > 1 %}
+    <nav class="pagination">
+      {% set sep = '&' if '?' in pager_base else '?' %}
+      {% if pager.has_prev %}<a href="{{ pager_base ~ sep ~ 'page=' ~ pager.prev_num }}">上一页</a>{% endif %}
+      {% for i in range(1, pager.pages + 1) %}
+        {% if i == pager.page %}
+        <span class="current">{{ i }}</span>
+        {% else %}
+        <a href="{{ pager_base ~ sep ~ 'page=' ~ i }}">{{ i }}</a>
+        {% endif %}
+      {% endfor %}
+      {% if pager.has_next %}<a href="{{ pager_base ~ sep ~ 'page=' ~ pager.next_num }}">下一页</a>{% endif %}
+    </nav>
+    {% endif %}
+  </div>
+  {% include "sidebar.html" %}
+</div>
+{% endblock %}

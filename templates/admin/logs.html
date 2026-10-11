@@ -1,0 +1,71 @@
+{% extends "admin/base.html" %}
+{% block title %}操作日志{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>操作日志</h1>
+    <p class="sub">自动保留 {{ SITE.log_keep_days or 90 }} 天（站点设置可调），超过自动清理</p>
+  </div>
+  <div class="btn-row">
+    <form method="post" action="{{ url_for('admin.logs_purge') }}" style="display: inline-flex;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn sm ghost" type="submit">清理过期日志</button>
+    </form>
+    <form method="post" action="{{ url_for('admin.logs_clear') }}" data-confirm="确定清空全部日志吗？此操作不可恢复" style="display: inline-flex;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn sm danger-ghost" type="submit">清空全部</button>
+    </form>
+  </div>
+</div>
+
+<form class="filter-bar" method="get" style="display: flex; gap: 8px;">
+  <select name="action">
+    <option value="">全部操作类型</option>
+    {% for a in actions %}
+    <option value="{{ a }}" {{ 'selected' if action == a }}>{{ a }}</option>
+    {% endfor %}
+  </select>
+  <input type="search" name="q" value="{{ q }}" placeholder="搜索操作人/对象/详情">
+  <button class="btn sm" type="submit">筛选</button>
+</form>
+
+<div class="panel glass">
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th style="width: 150px;">时间</th><th>操作人</th><th>类型</th><th>对象 / 详情</th><th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lg in logs %}
+        <tr>
+          <td class="cell-muted">{{ lg.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+          <td>{{ lg.username or '-' }}</td>
+          <td><span class="badge draft">{{ lg.action }}</span></td>
+          <td>
+            <div class="cell-title">{{ lg.target }}</div>
+            {% if lg.detail %}<div class="cell-muted" style="font-size: 12px;">{{ lg.detail }}</div>{% endif %}
+          </td>
+          <td class="cell-muted">{{ lg.ip }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="text-align:center; color: var(--text-3); padding: 30px;">暂无日志记录</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pager.pages > 1 %}
+<nav class="pagination admin-pager">
+  {% set sep = '&' if '?' in (request.full_path | string) else '?' %}
+  {% if pager.has_prev %}<a href="{{ request.path }}?{% if action %}action={{ action }}&{% endif %}{% if q %}q={{ q }}&{% endif %}page={{ pager.prev_num }}">上一页</a>{% endif %}
+  {% for i in range(1, pager.pages + 1) %}
+    {% if i == pager.page %}<span class="cur">{{ i }}</span>
+    {% else %}<a href="{{ request.path }}?{% if action %}action={{ action }}&{% endif %}{% if q %}q={{ q }}&{% endif %}page={{ i }}">{{ i }}</a>{% endif %}
+  {% endfor %}
+  {% if pager.has_next %}<a href="{{ request.path }}?{% if action %}action={{ action }}&{% endif %}{% if q %}q={{ q }}&{% endif %}page={{ pager.next_num }}">下一页</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

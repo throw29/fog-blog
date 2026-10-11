@@ -1,0 +1,188 @@
+{% extends "admin/base.html" %}
+{% block title %}文件库{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/editor.css') }}">
+{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>文件库</h1>
+    <p class="sub">上传图片 / PDF / 文档 / 视频 / 音频 / 压缩包，写作时直接引用；单文件 ≤ 200MB</p>
+  </div>
+</div>
+
+<div class="stats-chips">
+  <a class="stat-chip {{ 'active' if kind in ('', 'all') }}" href="{{ url_for('admin.files') }}">全部 <span class="n">{{ stats.all }}</span></a>
+  <a class="stat-chip {{ 'active' if kind == 'image' }}" href="{{ url_for('admin.files', kind='image') }}">图片 <span class="n">{{ stats.image }}</span></a>
+  <a class="stat-chip {{ 'active' if kind == 'doc' }}" href="{{ url_for('admin.files', kind='doc') }}">文档 / PDF <span class="n">{{ stats.doc }}</span></a>
+  <a class="stat-chip {{ 'active' if kind == 'video' }}" href="{{ url_for('admin.files', kind='video') }}">视频 <span class="n">{{ stats.video }}</span></a>
+  <a class="stat-chip {{ 'active' if kind == 'audio' }}" href="{{ url_for('admin.files', kind='audio') }}">音频 <span class="n">{{ stats.audio }}</span></a>
+  <a class="stat-chip {{ 'active' if kind == 'archive' }}" href="{{ url_for('admin.files', kind='archive') }}">压缩包 <span class="n">{{ stats.archive }}</span></a>
+</div>
+
+<div class="panel glass" style="padding: 20px;">
+  <div class="ed-drop" id="dropZone" style="padding: 26px 20px;">
+    <span class="big">⇪</span>
+    点击选择文件，或将文件拖到这里批量上传
+    <div class="sub">支持 png/jpg/gif/webp/svg · pdf/docx/xlsx/pptx/txt · mp4/webm/mov · mp3/wav · zip/rar/7z 等，单个 ≤ 200MB</div>
+  </div>
+  <input type="file" id="fileInput" multiple style="display:none">
+  <ul class="ed-upload-list" id="uploadList"></ul>
+
+  <form method="get" style="margin-top: 18px; display: flex; gap: 10px; max-width: 420px;">
+    <input type="hidden" name="kind" value="{{ kind }}">
+    <input type="text" name="q" value="{{ q }}" placeholder="搜索文件名…"
+      style="flex:1; height: 34px; border: 1px solid rgba(164, 134, 96, 0.4); border-radius: 9px; padding: 0 12px; font-size: 13px; background: rgba(255, 252, 246, 0.8); outline: none; color: var(--text);">
+    <button class="btn sm" type="submit">搜索</button>
+    {% if q %}<a class="btn ghost sm" href="{{ url_for('admin.files', kind=kind) }}">清空</a>{% endif %}
+  </form>
+
+  {% if files %}
+  <div class="file-grid">
+    {% for f in files %}
+    <div class="file-item" data-id="{{ f.id }}" data-url="{{ f.url }}" data-name="{{ f.name }}" data-kind="{{ f.kind }}" data-ext="{{ f.ext }}">
+      <div class="f-thumb">
+        {% if f.kind == 'image' %}
+        <a href="{{ f.url }}" target="_blank" title="查看原图"><img src="{{ f.url }}" alt="{{ f.name }}" loading="lazy"></a>
+        {% else %}
+        <a href="{{ f.url }}" target="_blank" title="打开文件"><span class="f-ext">{{ (f.ext or 'FILE')[:6] | upper }}</span></a>
+        {% endif %}
+      </div>
+      <span class="f-kind">{{ {'image':'图片','doc':'文档','video':'视频','audio':'音频','archive':'压缩包'}[f.kind] }}</span>
+      <div class="f-info">
+        <div class="f-name" title="{{ f.name }}">{{ f.name }}</div>
+        <div class="f-sub">{{ f.size_label }} · {{ f.created_at.strftime('%Y-%m-%d') }}</div>
+      </div>
+      <div class="f-ops">
+        <button type="button" class="f-op-btn" data-copy title="复制引用链接">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8h11l-3.5-3.5M16 16H5l3.5 3.5"/></svg>复制链接
+        </button>
+        <button type="button" class="f-op-btn del" data-del title="删除该文件" data-confirm-msg="确定删除「{{ f.name }}」吗？删除后引用它的文章将无法显示该文件。">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg>删除
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="files-empty">
+    {% if q or kind %}没有找到符合条件的文件{% else %}还没有文件，把图片 / 文档 / 视频拖到上面上传吧{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div id="toast" style="position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); background: rgba(50,40,24,.92); color: #fdf3e7; font-size: 13px; padding: 8px 18px; border-radius: 999px; z-index: 1200; display: none;"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var CSRF = "{{ csrf_token() }}";
+  var drop = document.getElementById("dropZone");
+  var input = document.getElementById("fileInput");
+  var list = document.getElementById("uploadList");
+  var toastEl = document.getElementById("toast");
+  var toastTimer = null;
+
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.style.display = "block";
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.style.display = "none"; }, 2400);
+  }
+
+  drop.addEventListener("click", function () { input.click(); });
+  input.addEventListener("change", function () {
+    uploadFiles(Array.prototype.slice.call(input.files));
+    input.value = "";
+  });
+  ["dragover", "dragleave", "drop"].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) {
+      e.preventDefault();
+      drop.classList.toggle("dragover", ev === "dragover" || ev === "drop");
+    });
+  });
+  drop.addEventListener("drop", function (e) {
+    if (e.dataTransfer.files.length) uploadFiles(Array.prototype.slice.call(e.dataTransfer.files));
+  });
+
+  function uploadFiles(files) {
+    if (!files.length) return;
+    files.forEach(function (file) {
+      var li = document.createElement("li");
+      li.className = "ed-up-item";
+      li.innerHTML = '<span class="up-name"></span><span class="up-state">上传中…</span>';
+      li.querySelector(".up-name").textContent = file.name;
+      list.insertBefore(li, list.firstChild);
+      var fd = new FormData();
+      fd.append("file", file);
+      fd.append("csrf_token", CSRF);
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/upload");
+      xhr.onload = function () {
+        var data = {};
+        try { data = JSON.parse(xhr.responseText); } catch (e) {}
+        if (xhr.status === 200 && data.ok) {
+          li.classList.add("ok");
+          li.querySelector(".up-state").textContent = "已上传 ✓";
+          toast("上传成功：" + file.name + "，页面即将刷新");
+          setTimeout(function () { window.location.reload(); }, 600);
+        } else {
+          li.classList.add("err");
+          li.querySelector(".up-state").textContent = data.msg || "上传失败";
+        }
+      };
+      xhr.onerror = function () {
+        li.classList.add("err");
+        li.querySelector(".up-state").textContent = "网络异常";
+      };
+      xhr.send(fd);
+    });
+  }
+
+  // 复制链接 / 删除
+  document.querySelectorAll("[data-copy]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var url = btn.closest(".file-item").dataset.url;
+      var abs = window.location.origin + url;
+      var done = function () { toast("已复制：" + url); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(abs).then(done, function () { fallbackCopy(abs, done); });
+      } else fallbackCopy(abs, done);
+    });
+  });
+
+  function fallbackCopy(text, done) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    ta.remove();
+    done();
+  }
+
+  document.querySelectorAll("[data-del]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      /* 等待 wb-modal.js 拦截 → 弹中央 modal → 用户点确定后设 btn.__wbModalSkip=true
+         然后 wb-modal 调 btn.click() 重新派发 → 这次本 listener 放行执行删除 */
+      if (!btn.__wbModalSkip) return;
+      var item = btn.closest(".file-item");
+      var id = item.dataset.id;
+      var fd = new FormData();
+      fd.append("csrf_token", CSRF);
+      fetch("/api/file/" + id + "/delete", { method: "POST", body: fd, headers: { "X-CSRF-Token": CSRF } })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.ok) {
+            toast("已删除");
+            setTimeout(function () { window.location.reload(); }, 400);
+          } else toast(data.msg || "删除失败");
+        })
+        .catch(function () { toast("删除失败"); });
+    });
+  });
+})();
+</script>
+{% endblock %}

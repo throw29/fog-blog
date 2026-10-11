@@ -1,0 +1,160 @@
+{% extends "admin/base.html" %}
+{% block title %}{% if view == 'trash' %}回收站{% else %}文章管理{% endif %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% if view == 'trash' %}回收站{% else %}文章管理{% endif %}</h1>
+    <p class="sub">
+      {% if view == 'trash' %}
+        共 {{ posts | length }} 篇 · 30 天后自动清理
+      :%}
+        共 {{ posts | length }} 篇
+      {% endif %}
+    </p>
+  </div>
+  <div style="display: flex; gap: 10px; align-items: center;">
+    {% if view != 'trash' %}
+    <a class="btn" href="{{ url_for('admin.post_new') }}">写新文章</a>
+    <a class="btn ghost" href="{{ url_for('admin.pdf_new') }}" title="上传 PDF 自动提取文字生成文章草稿">PDF 转文章</a>
+    <a class="btn ghost" href="{{ url_for('admin.posts_trash') }}">回收站</a>
+    {% else %}
+    <a class="btn ghost" href="{{ url_for('admin.posts') }}">返回文章管理</a>
+    <form method="post" action="{{ url_for('admin.posts_auto_purge_expired') }}" data-confirm="立即清理所有超过 30 天的回收站文章？此操作不可恢复">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn ghost" type="submit">立即清理过期</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+{% if view != 'trash' %}
+<div class="filter-bar">
+  {% set cur_status = status if status in ('published', 'draft', 'scheduled') else none %}
+  <a href="{{ url_for('admin.posts', sort=sort) }}" class="{{ 'active' if not cur_status }}">全部</a>
+  <a href="{{ url_for('admin.posts', status='published', sort=sort) }}" class="{{ 'active' if cur_status == 'published' }}">已发布</a>
+  <a href="{{ url_for('admin.posts', status='draft', sort=sort) }}" class="{{ 'active' if cur_status == 'draft' }}">草稿</a>
+  <a href="{{ url_for('admin.posts', status='scheduled', sort=sort) }}" class="{{ 'active' if cur_status == 'scheduled' }}">定时</a>
+  <span style="flex:1;"></span>
+  <span class="filter-sep">排序</span>
+  <a href="{{ url_for('admin.posts', status=cur_status, sort='time_desc') }}" class="{{ 'active' if sort == 'time_desc' }}" title="按发布时间从新到旧">发布时间 ↓</a>
+  <a href="{{ url_for('admin.posts', status=cur_status, sort='time_asc') }}" class="{{ 'active' if sort == 'time_asc' }}" title="按发布时间从旧到新">发布时间 ↑</a>
+  <a href="{{ url_for('admin.posts', status=cur_status, sort='hot') }}" class="{{ 'active' if sort == 'hot' }}" title="按互动热度：点赞×5 + 评论×10 + 阅读">热度 🔥</a>
+</div>
+
+{# 批量操作工具栏 —— 默认隐藏，勾选 ≥1 篇时显示 #}
+<div class="batch-bar" id="batchBar" hidden>
+  <span class="batch-count" id="batchCount">已选 0 篇</span>
+  <button type="button" class="btn sm ghost" id="batchClear">取消选择</button>
+  <span style="flex:1;"></span>
+  <form method="post" action="{{ url_for('admin.posts_batch') }}" data-confirm="确定将选中的文章移入回收站吗？">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="delete">
+    <div id="batchIds"></div>
+    <button class="btn sm danger-ghost" type="submit">批量移入回收站</button>
+  </form>
+</div>
+{% else %}
+{# 回收站视图工具栏 #}
+<div class="batch-bar" id="batchBar" hidden>
+  <span class="batch-count" id="batchCount">已选 0 篇</span>
+  <button type="button" class="btn sm ghost" id="batchClear">取消选择</button>
+  <span style="flex:1;"></span>
+  <form method="post" action="{{ url_for('admin.posts_batch') }}" data-confirm="确定恢复选中的文章吗？">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="restore">
+    <div id="batchIds"></div>
+    <button class="btn sm ghost" type="submit">批量恢复</button>
+  </form>
+  <form method="post" action="{{ url_for('admin.posts_batch') }}" data-confirm="确定永久删除选中的文章吗？此操作不可恢复">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="purge">
+    <div id="batchIds2"></div>
+    <button class="btn sm danger-ghost" type="submit">批量永久删除</button>
+  </form>
+</div>
+{% endif %}
+
+<div class="panel glass">
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          {% if view != 'trash' or posts %}
+          <th style="width: 36px;"><label class="batch-check"><input type="checkbox" id="batchAll" title="全选当前页"></label></th>
+          {% else %}
+          <th style="width: 36px;"></th>
+          {% endif %}
+          <th>标题</th><th>分类</th><th>标签</th><th>状态</th>
+          {% if view == 'trash' %}<th>删除时间</th>{% else %}<th>阅读</th><th>评论</th><th>发布时间</th>{% endif %}
+          <th style="width: 180px;">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in posts %}
+        <tr>
+          <td><label class="batch-check"><input type="checkbox" class="rowCheck" value="{{ p.id }}"></label></td>
+          <td class="cell-title">
+            {% if view != 'trash' %}
+            <a href="{{ url_for('admin.post_edit', pid=p.id) }}">{{ p.title }}</a>
+            {% else %}
+            <span style="color: var(--text-2);">{{ p.title }}</span>
+            {% endif %}
+            {% if p.is_top %}<span class="badge" style="background: rgba(209,74,46,.1); color:#d14a2e;">置顶</span>{% endif %}
+            {% if p.render_mode == 'pdf' %}<span class="badge" style="background: rgba(209,74,46,.1); color:#d14a2e;">PDF</span>{% endif %}
+            {% if not p.allow_comment %}<span class="badge" style="background: rgba(120,120,120,.14); color: var(--text-3);">禁评</span>{% endif %}
+          </td>
+          <td class="cell-muted">{{ p.category.name if p.category else '-' }}</td>
+          <td class="cell-muted" style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            {% for t in p.tags %}#{{ t.name }} {% endfor %}
+          </td>
+          <td>
+            <span class="badge {{ p.status }}">
+              {{ { 'published': '已发布', 'draft': '草稿', 'scheduled': '定时' }[p.status] }}
+            </span>
+          </td>
+          {% if view == 'trash' %}
+          <td class="cell-muted">
+            {{ p.deleted_at.strftime('%Y-%m-%d %H:%M') }}
+            {% set days_left = 30 - ((datetime.now() - p.deleted_at).days) %}
+            <br><span style="font-size: 11px; color: {% if days_left <= 7 %}#d14a2e{% else %}var(--text-3){% endif %};">
+              {% if days_left > 0 %}{{ days_left }} 天后清理{% else %}即将清理{% endif %}
+            </span>
+          </td>
+          {% else %}
+          <td class="cell-muted">{{ p.views }}</td>
+          <td class="cell-muted">{{ p.comment_count }}</td>
+          <td class="cell-muted">{{ p.published_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          {% endif %}
+          <td>
+            <div class="btn-row">
+              {% if view != 'trash' %}
+              <a class="btn sm ghost" href="{{ url_for('admin.post_edit', pid=p.id) }}">编辑</a>
+              <form method="post" action="{{ url_for('admin.post_delete', pid=p.id) }}" data-confirm="确定将「{{ p.title }}」移入回收站吗？30 天后自动删除">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn sm danger-ghost" type="submit">删除</button>
+              </form>
+              {% else %}
+              <form method="post" action="{{ url_for('admin.post_restore', pid=p.id) }}" data-confirm="恢复「{{ p.title }}」？">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn sm ghost" type="submit">恢复</button>
+              </form>
+              <form method="post" action="{{ url_for('admin.post_purge', pid=p.id) }}" data-confirm="永久删除「{{ p.title }}」？此操作不可恢复">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn sm danger-ghost" type="submit">永久删除</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" style="text-align:center; color: var(--text-3); padding: 30px;">
+          {% if view == 'trash' %}回收站是空的{% else %}暂无文章，点击右上角「写新文章」开始创作{% endif %}
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/posts-batch.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}友链 · {{ SITE.site_name }}{% endblock %}
+{% block page_title %}友情链接{% endblock %}
+{% block page_subtitle %}交换友链请联系我们，欢迎一起进步{% endblock %}
+
+{% block content %}
+<div class="layout">
+  <div class="layout-full" style="min-width: 0;">
+    {% if friends %}
+    <div class="friend-grid">
+      {% for f in friends %}
+      <a class="friend-card glass" href="{{ f.url }}" target="_blank" rel="noopener">
+        <div class="friend-avatar">
+          {% if f.avatar %}<img src="{{ f.avatar }}" alt="{{ f.name }}" loading="lazy">{% else %}{{ f.name[:1] }}{% endif %}
+        </div>
+        <div class="friend-info">
+          <div class="name">{{ f.name }}</div>
+          <div class="desc">{{ f.description or f.url }}</div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty glass">
+      <div class="icon">◌</div>
+      <p>暂无友链，期待第一位朋友</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

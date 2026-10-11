@@ -1,0 +1,65 @@
+{% extends "admin/base.html" %}
+{% block title %}上传 SSL 证书{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>上传 / 更新 SSL 证书</h1>
+    <p class="sub">粘贴 <strong>证书（PEM）</strong>与<strong>私钥（PEM）</strong>，后端会自动校验配对、覆盖域名、有效期，全部通过后写入 nginx 配置并 reload。</p>
+  </div>
+</div>
+
+<form method="post" class="ssl-form" style="max-width: 760px;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="panel glass">
+    <h2>主域名</h2>
+    <div class="form-item">
+      <label>站点主域名（如 <code>example.com</code>）—— 必须在证书 SAN 中，否则会被拒绝</label>
+      <input type="text" name="domain" value="{{ domain }}" required pattern="(\*\.)?([a-z0-9-]+\.)+[a-z]{2,}"
+             placeholder="example.com" style="width: 100%;">
+      <p class="form-hint">SAN 中的通配符证书可填 <code>example.com</code> 并匹配 <code>blog.example.com</code>。多 SAN 证书只需填「主域名」一个。</p>
+    </div>
+  </div>
+
+  <div class="panel glass">
+    <h2>证书（PEM 格式）</h2>
+    <div class="form-item">
+      <label>-----BEGIN CERTIFICATE----- 开头的整段文本（含中间证书 chain）</label>
+      <textarea name="cert_pem" rows="10" required spellcheck="false" placeholder="-----BEGIN CERTIFICATE-----&#10;MIID...（粘贴整段，包含 chain）&#10;-----END CERTIFICATE-----"
+                style="width: 100%; font-family: ui-monospace, 'JetBrains Mono', Consolas, monospace; font-size: 13px;"></textarea>
+    </div>
+  </div>
+
+  <div class="panel glass">
+    <h2>私钥（PEM 格式）</h2>
+    <div class="form-item">
+      <label>-----BEGIN &lt;ALGO&gt; PRIVATE KEY----- 开头（<strong>暂不支持加密私钥</strong>，请在本地用 openssl 解密后再粘贴）</label>
+      <textarea name="key_pem" rows="10" required spellcheck="false" placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;（或 -----BEGIN EC PRIVATE KEY----- / -----BEGIN PRIVATE KEY-----）&#10;-----END ... PRIVATE KEY-----"
+                style="width: 100%; font-family: ui-monospace, 'JetBrains Mono', Consolas, monospace; font-size: 13px;"></textarea>
+      <p class="form-hint">校验会自动比对：私钥公钥模数（modulus）是否与证书中的公钥匹配。</p>
+    </div>
+  </div>
+
+  <div class="panel glass" style="background: rgba(255,200,100,0.06);">
+    <h2>校验清单</h2>
+    <ul style="line-height: 1.8; padding-left: 20px; color: var(--text-2);">
+      <li>证书与私钥能正确解析（PEM 格式合法）</li>
+      <li>证书公钥与私钥匹配（modulus 比对）</li>
+      <li>你填的域名在证书的 SAN 或 CN 中</li>
+      <li>证书未过期、未到生效时间</li>
+      <li>任何一步失败都不会写盘 —— 整个上传是事务性的</li>
+      <li>所有成功操作记录到「操作日志」</li>
+    </ul>
+  </div>
+
+  <div style="display: flex; gap: 12px; margin-top: 16px;">
+    <button class="btn" type="submit">校验并生效</button>
+    <a class="btn ghost" href="{{ url_for('admin.ssl_status') }}">取消</a>
+  </div>
+</form>
+
+<style>
+.ssl-form .form-hint { font-size: 12px; color: var(--text-3); margin-top: 6px; line-height: 1.6; }
+.ssl-form textarea { resize: vertical; min-height: 200px; }
+</style>
+{% endblock %}

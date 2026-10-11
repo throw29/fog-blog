@@ -1,0 +1,70 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+
+# 虚拟环境（项目级）
+venv/
+.venv/
+env/
+
+# 隔离 venv（用户主目录下，部署用）
+.workbuddy/
+
+# 数据库（开发数据，部署时用 init_db 重建）
+blog.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# 上传文件（用户实际数据，不进版本控制；部署后用管理后台上传）
+uploads/*
+!uploads/.gitkeep
+
+# PDF.js / marked / turndown / highlight.js 已本地化到 static/vendor/（无 CDN 依赖，必须入库才能开箱即用）
+
+# 截图（验证图，不进版本控制）
+shots/
+
+# CDP Edge 临时 profile（自动清理失败残留）
+cdp_profile_*/
+cdp_measure_*/
+cdp_pdf_*/
+cdp_*/
+.edge-*/
+# Node 模块（cdp_shot_v*.js 用到的 ws 仅在截图时临时装在项目目录）
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# 日志
+*.log
+
+# 环境变量（生产密钥不进 git）
+.env
+.env.local
+.env.production
+
+# Backups, secrets and local test outputs
+backup/
+*.db
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.tmp
+cdp_*.js
+
+# Wallpaper screenshots: external artwork rights not established
+/screenshots/home-*.png
+/screenshots/article.png
+/screenshots/admin-settings.png

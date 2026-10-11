@@ -1,0 +1,38 @@
+[Unit]
+Description=Fog Blog (Flask + Gunicorn)
+Documentation=file:/var/www/blog/README.md
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/blog
+Environment="PATH=/var/www/blog/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+EnvironmentFile=-/etc/blog/blog.env
+ExecStart=/var/www/blog/venv/bin/gunicorn \
+    --workers 2 \
+    --threads 4 \
+    --bind 127.0.0.1:8000 \
+    --access-logfile - \
+    --error-logfile - \
+    --timeout 60 \
+    --keep-alive 5 \
+    app:app
+Restart=always
+RestartSec=5
+LimitNOFILE=65535
+
+# 安全的加固选项（注意：NoNewPrivileges=true 会阻止 sudo setuid to root，
+# 导致 SSL 上传 wrapper（blog-ssl-apply）失败。保留其他加固项即可）
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+# 写权限白名单：
+# - /var/www/blog（SQLite）+ uploads/backup（用户上传）
+# - /etc/nginx/ssl（SSL 证书）+ sites-available/sites-enabled（nginx https 配置 + 软链）
+# - /etc/blog（env 配置目录）
+ReadWritePaths=/var/www/blog /var/www/blog/uploads /var/www/blog/backup /etc/nginx/ssl /etc/blog /etc/nginx/sites-available /etc/nginx/sites-enabled
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,38 @@
+{% extends "admin/base.html" %}
+{% block title %}备份与导出{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>备份与导出</h1>
+    <p class="sub">定期备份，防止数据丢失</p>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="panel glass">
+    <h2>数据库备份</h2>
+    <p style="color: var(--text-2); font-size: 13.5px; margin-bottom: 14px;">
+      下载当前完整的 SQLite 数据库文件（包含文章、评论、设置、用户等全部数据）。建议定期下载保存到本地。
+    </p>
+    <a class="btn" href="{{ url_for('admin.backup_db') }}">下载数据库备份</a>
+  </div>
+
+  <div class="panel glass">
+    <h2>文章导出</h2>
+    <p style="color: var(--text-2); font-size: 13.5px; margin-bottom: 14px;">
+      将所有文章（含分类、标签、Markdown 原文）导出为 JSON 文件，方便迁移或存档。
+    </p>
+    <a class="btn ghost" href="{{ url_for('admin.backup_export') }}">导出文章 JSON</a>
+  </div>
+</div>
+
+<div class="panel glass">
+  <h2>恢复说明</h2>
+  <ul style="padding-left: 18px; color: var(--text-2); font-size: 13.5px; line-height: 2;">
+    <li>备份文件为 SQLite 数据库，直接替换服务器上的 <code style="background: rgba(180,83,9,.1); padding: 1px 6px; border-radius: 5px;">blog.db</code> 文件即可恢复全部数据。</li>
+    <li>恢复前请先停止服务：<code style="background: rgba(180,83,9,.1); padding: 1px 6px; border-radius: 5px;">sudo systemctl stop blog</code></li>
+    <li>替换后重启服务：<code style="background: rgba(180,83,9,.1); padding: 1px 6px; border-radius: 5px;">sudo systemctl start blog</code></li>
+    <li>文章 JSON 导出用于跨系统迁移或存档，不能直接用于本系统恢复。</li>
+  </ul>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "admin/base.html" %}
+{% block title %}PDF 转文章{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>PDF 转文章</h1>
+    <p class="sub">上传 PDF → 生成网页文章（可转文字草稿，也可保留原版式在线阅读）</p>
+  </div>
+  <a class="btn ghost" href="{{ url_for('admin.posts') }}">返回文章列表</a>
+</div>
+
+<div class="panel glass" style="max-width: 760px; margin-top: 18px;">
+  <form method="post" enctype="multipart/form-data" style="padding: 24px 26px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div style="border: 1.5px dashed rgba(164,134,96,.45); border-radius: 14px; padding: 30px 20px; text-align: center;">
+      <div style="font-size: 40px; line-height: 1;">📄</div>
+      <p style="margin: 10px 0 4px; color: var(--text);">选择要上传的 PDF 文件</p>
+      <p style="font-size: 12px; color: var(--text-3); margin-bottom: 12px;">单个 ≤ 30MB · 支持中文文件名</p>
+      <input type="file" name="file" accept="application/pdf,.pdf" required>
+    </div>
+
+    <div style="margin-top: 18px;">
+      <p style="font-size: 13px; font-weight: 500; margin: 0 0 8px; color: var(--text);">生成方式（可随时更改，不会影响已发布内容）</p>
+      <label class="pdf-mode-opt" style="display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer;">
+        <input type="radio" name="mode" value="view" checked style="margin-top: 3px;">
+        <span>
+          <strong style="font-size: 13px;">在线阅读（推荐）</strong> — 保留 PDF 原版式：图片 / 表格 / 排版 100% 保真，前台用内置阅读器整页浏览，同样支持点赞、评论
+        </span>
+      </label>
+      <label class="pdf-mode-opt" style="display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px 14px; cursor: pointer;">
+        <input type="radio" name="mode" value="text" style="margin-top: 3px;">
+        <span>
+          <strong style="font-size: 13px;">转文字草稿</strong> — 提取文字整理成 Markdown 草稿，可完全编辑重排；图表 / 排版会丢失（适合纯文字文档）
+        </span>
+      </label>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 18px; align-items: center;">
+      <button class="btn" type="submit">开始转换 → 生成文章</button>
+      <span style="font-size: 12px; color: var(--text-3);">转换后自动进入编辑器</span>
+    </div>
+  </form>
+</div>
+
+<div class="panel glass" style="max-width: 760px; margin-top: 14px; padding: 18px 24px;">
+  <h3 style="font-size: 14px; font-weight: 500; margin-bottom: 8px;">说明</h3>
+  <ul style="font-size: 13px; color: var(--text-2); line-height: 2; padding-left: 18px; margin: 0;">
+    <li>两种模式都会生成<strong>草稿</strong>，不会直接发布；请在编辑器里补充标题 / 分类 / 标签后手动发布。</li>
+    <li>「在线阅读」用浏览器内置 PDF 引擎（PDF.js）渲染，<strong>不占用服务器算力</strong>，1-2 核 / 2G 内存服务器可流畅运行。</li>
+    <li>「转文字草稿」模式文末会自动附上「原文 PDF」下载链接（可删除）。</li>
+    <li>原 PDF 会存入「文件库 → 文档」，可随时在文章里引用或单独删除。</li>
+    <li>纯本地解析（pypdf），文件不上传任何第三方服务。</li>
+  </ul>
+</div>
+{% endblock %}

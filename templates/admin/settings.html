@@ -1,0 +1,405 @@
+{% extends "admin/base.html" %}
+{% block title %}站点设置{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>站点设置</h1>
+    <p class="sub">保存后前台立即生效</p>
+  </div>
+</div>
+
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="panel glass" style="max-width: 760px;">
+    <h2>基本信息</h2>
+    <div class="form-grid">
+      <div class="form-item">
+        <label>站点名称</label>
+        <input type="text" name="site_name" value="{{ SITE.site_name }}">
+      </div>
+      <div class="form-item">
+        <label>站点副标题</label>
+        <input type="text" name="site_subtitle" value="{{ SITE.site_subtitle }}">
+      </div>
+      <div class="form-item full">
+        <label>站点描述（SEO）</label>
+        <input type="text" name="site_description" value="{{ SITE.site_description }}">
+      </div>
+      <div class="form-item full">
+        <label>SEO 关键词</label>
+        <input type="text" name="site_keywords" value="{{ SITE.site_keywords }}">
+      </div>
+      <div class="form-item full">
+        <label>页脚文字</label>
+        <input type="text" name="footer_text" value="{{ SITE.footer_text }}">
+      </div>
+      <div class="form-item full">
+        <label>备案号（选填，留空不显示）</label>
+        <input type="text" name="icp" value="{{ SITE.icp }}" placeholder="例如：京ICP备12345678号">
+      </div>
+    </div>
+  </div>
+
+  <div class="panel glass" style="max-width: 760px;">
+    <h2>评论设置</h2>
+    <div class="form-item">
+      <label class="check-row">
+        <input type="checkbox" name="comment_allow" value="1" {{ 'checked' if SITE.comment_allow == '1' }}> 开启评论区
+      </label>
+    </div>
+    <div class="form-item">
+      <label class="check-row">
+        <input type="checkbox" name="comment_need_audit" value="1" {{ 'checked' if SITE.comment_need_audit == '1' }}> 新评论需要管理员审核后才展示
+      </label>
+    </div>
+  </div>
+
+  <div class="panel glass" style="max-width: 760px;">
+    <h2>博主信息（前台侧栏卡片）</h2>
+    <div class="form-grid">
+      <div class="form-item">
+        <label>昵称（留空用站点名）</label>
+        <input type="text" name="blogger_name" value="{{ SITE.blogger_name }}" placeholder="如：阿雾">
+      </div>
+      <div class="form-item">
+        <label>头像图片 URL（留空显示首字母圆）</label>
+        <input type="text" name="blogger_avatar" value="{{ SITE.blogger_avatar }}" placeholder="/uploads/image/xxx.png 或 https://...">
+      </div>
+      <div class="form-item full">
+        <label>一句话简介</label>
+        <input type="text" name="blogger_bio" value="{{ SITE.blogger_bio }}" placeholder="例如：写了 10 年代码的强迫症患者">
+      </div>
+    </div>
+  </div>
+
+  <div class="panel glass" style="max-width: 760px;">
+    <h2>每日鸡汤（侧栏金句）</h2>
+    <div class="form-item">
+      <label class="check-row">
+        <input type="checkbox" name="motto_enable" value="1" {{ 'checked' if SITE.motto_enable == '1' }}> 显示「每日鸡汤」
+      </label>
+    </div>
+    <div class="form-item">
+      <label>自定义句库（每行一句，留空则使用内置句库；按日期轮换，每天都不同）</label>
+      <textarea name="motto_text" rows="6" placeholder="一行一句，例如：&#10;你只管努力，剩下的交给时间。&#10;星光不问赶路人，时光不负有心人。">{{ SITE.motto_text }}</textarea>
+    </div>
+  </div>
+
+  <div class="panel glass" style="max-width: 760px;">
+    <h2>外观配色（毛玻璃保持，仅换主色调与氛围光斑）</h2>
+    <div class="form-item">
+      <label>配色方案（前后台同步生效）</label>
+      <select id="selColorPalette" name="color_palette" data-bind="color_palette">
+        {% set pal = SITE.color_palette or 'amber' %}
+        <option value="amber" {{ 'selected' if pal == 'amber' }}>焦糖琥珀（默认）</option>
+        <option value="sea" {{ 'selected' if pal == 'sea' }}>海盐蓝</option>
+        <option value="mint" {{ 'selected' if pal == 'mint' }}>抹茶青</option>
+        <option value="grape" {{ 'selected' if pal == 'grape' }}>葡萄紫</option>
+        <option value="rose" {{ 'selected' if pal == 'rose' }}>蔷薇粉</option>
+      </select>
+      <p style="font-size: 12px; color: var(--text-3); margin-top: 6px;">
+        每套配色均有配套的浅色 / 深色主题，改变后即时生效。
+        前台 / 后台任一处切换，两边都会自动跟随。
+      </p>
+    </div>
+  </div>
+
+  <div class="panel glass" style="max-width: 760px;">
+    <h2>自定义背景图（前台毛玻璃背景）</h2>
+    <div class="form-item">
+      <label>背景图片（留空 = 默认渐变底 + 漂浮光斑）</label>
+      <div class="bg-setup-row">
+        <input type="text" id="bgImgInput" name="site_bg_image" value="{{ SITE.site_bg_image }}"
+               placeholder="/uploads/image/xxx.jpg 或 https://example.com/wallpaper.jpg">
+        <button type="button" class="btn ghost" id="bgFileBtn">上传图片</button>
+        <input type="file" id="bgFileInput" accept="image/png,image/jpeg,image/webp,image/gif,image/avif" hidden>
+      </div>
+      <div class="bg-preview {{ '' if SITE.site_bg_image else 'empty' }}" id="bgPreview">
+        {% if SITE.site_bg_image %}<img src="{{ SITE.site_bg_image }}" alt="背景图预览">{% endif %}
+      </div>
+      <p style="font-size: 12px; color: var(--text-3); margin-top: 6px;">
+        建议使用高清大图（如动漫壁纸，1920×1080 及以上）；图片铺满全屏，文章卡片 / 导航 / 页脚保持毛玻璃，
+        背景图会从玻璃后面透出。上传后需点底部「保存设置」生效。
+      </p>
+    </div>
+    <div class="form-item">
+      <label>背景图透明度：<span id="bgOpacityLabel" style="color: var(--primary); font-weight: 600;">{{ SITE.site_bg_opacity or 45 }}%</span></label>
+      <div class="bg-op-row">
+        <span style="font-size: 12px; color: var(--text-3);">淡</span>
+        <input type="range" id="bgOpacity" name="site_bg_opacity" min="5" max="100" step="5"
+               value="{{ SITE.site_bg_opacity or 45 }}">
+        <span style="font-size: 12px; color: var(--text-3);">浓</span>
+      </div>
+      <p style="font-size: 12px; color: var(--text-3); margin-top: 6px;">
+        数值越小背景越素净、越利于阅读；调大后图片透过毛玻璃更明显。
+      </p>
+    </div>
+    <div class="form-item">
+      <button type="button" class="btn danger-ghost" id="bgClearBtn">移除背景图（恢复默认渐变底）</button>
+    </div>
+  </div>
+
+  <div class="panel glass" style="max-width: 760px;">
+    <h2>深色模式</h2>
+    <div class="form-grid">
+      <div class="form-item">
+        <label>默认外观</label>
+        <select id="selThemeDefault" name="theme_default" data-bind="theme_default">
+          <option value="light" {{ 'selected' if SITE.theme_default == 'light' }}>浅色</option>
+          <option value="dark" {{ 'selected' if SITE.theme_default == 'dark' }}>深色</option>
+        </select>
+      </div>
+      <div class="form-item">
+        <label>自动切换方式（访客也可手动点导航按钮覆盖）</label>
+        <select id="selThemeAuto" name="theme_auto" data-bind="theme_auto">
+          <option value="off" {{ 'selected' if SITE.theme_auto == 'off' }}>不自动（仅手动）</option>
+          <option value="schedule" {{ 'selected' if SITE.theme_auto == 'schedule' }}>按时间段自动切换</option>
+          <option value="system" {{ 'selected' if SITE.theme_auto == 'system' }}>跟随系统外观</option>
+        </select>
+      </div>
+      <div class="form-item">
+        <label>深色开始小时（0-23，按时间段模式）</label>
+        <input id="inpDarkStart" type="number" name="theme_dark_start" data-bind="theme_dark_start"
+               min="0" max="23" value="{{ SITE.theme_dark_start }}">
+      </div>
+      <div class="form-item">
+        <label>深色结束小时（0-23，支持跨天如 07）</label>
+        <input id="inpDarkEnd" type="number" name="theme_dark_end" data-bind="theme_dark_end"
+               min="0" max="23" value="{{ SITE.theme_dark_end }}">
+      </div>
+    </div>
+    <div class="form-item">
+      <label class="check-row">
+        <input type="checkbox" name="theme_fix_content" value="1" {{ 'checked' if SITE.theme_fix_content == '1' }}> 深色模式下自动提亮正文中「写死成深色」的文字（反色修复，避免黑字看不见）
+      </label>
+    </div>
+  </div>
+
+  <div class="panel glass" style="max-width: 760px;">
+    <h2>天气小部件（免费接口，按访客 IP 定位）</h2>
+    <div class="form-item">
+      <label>默认城市（定位失败时兜底；填英文城市名如 Beijing，或 纬度,经度 如 30.67,104.06，留空则定位失败时隐藏）</label>
+      <input type="text" name="weather_default_city" value="{{ SITE.weather_default_city }}" placeholder="如 Beijing 或 30.67,104.06">
+    </div>
+  </div>
+
+  <div class="panel glass" style="max-width: 760px;">
+    <h2>操作日志保留</h2>
+    <div class="form-item">
+      <label>操作日志保留天数（自动清理周期，默认 90 天）</label>
+      <input type="number" name="log_keep_days" min="7" max="3650" value="{{ SITE.log_keep_days }}">
+    </div>
+  </div>
+
+  <div style="max-width: 760px; margin-top: 4px;">
+    <button class="btn" type="submit">保存设置</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  /* 配色 / 深浅色 select 与前台切换器"双向同步"
+   *  - 进入页面：把当前 localStorage + WB_THEME 反映到 select.value
+   *  - 改 select：立即生效并写 DB（管理员身份）
+   *  - 监听 WB_PALETTE_APPLY 派发的 wb:palette-applied / WB_THEME_SYNC_FORMS 派发的 wb:theme-pref-applied
+   */
+  (function () {
+    var csrf = (document.querySelector('input[name="csrf_token"]') || {}).value || "";
+    function flash(msg, cat) {
+      var box = document.createElement("div");
+      box.className = "flash-msg " + (cat || "success");
+      box.setAttribute("data-auto-hide", "");
+      box.textContent = msg;
+      document.body.appendChild(box);
+      setTimeout(function () {
+        box.style.transition = "opacity 0.4s";
+        box.style.opacity = "0";
+        setTimeout(function () { box.remove(); }, 450);
+      }, 1600);
+    }
+
+    /* 1. 进入页面：把当前生效值同步到 select，避免"切换了但下拉框显示陈旧值" */
+    var selPal = document.getElementById("selColorPalette");
+    if (selPal) {
+      var cur = null;
+      try { cur = localStorage.getItem("wb-palette"); } catch (e) {}
+      if (!cur && window.WB_PALETTE_GET_DEFAULT) cur = window.WB_PALETTE_GET_DEFAULT();
+      if (cur && [].slice.call(selPal.options).some(function (o) { return o.value === cur; })) {
+        selPal.value = cur;
+      }
+      /* change：立刻调主切换器（持久化 + 写 DB） */
+      selPal.addEventListener("change", function () {
+        var v = selPal.value;
+        if (window.WB_PALETTE_APPLY) window.WB_PALETTE_APPLY(v, true);
+        flash("已切换为「" + (selPal.selectedOptions[0] ? selPal.selectedOptions[0].text : v) + "」", "success");
+      });
+      /* 主题切换器（含左侧 dock 弹层）修改时，下拉跟着变 */
+      selPal.addEventListener("wb:palette-applied", function (ev) {
+        if (ev && ev.detail && ev.detail.value && selPal.value !== ev.detail.value) {
+          selPal.value = ev.detail.value;
+        }
+      });
+    }
+
+    /* 2. theme_default / theme_auto / 时间小时数：change 后调 WB_THEME_APPLY / WB_THEME_SYNC_FORMS 并 POST */
+    function syncFieldToServer(field, value) {
+      try {
+        fetch("/api/site-prefs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf, "X-Requested-With": "fetch" },
+          body: JSON.stringify((function () { var o = {}; o[field] = value; return o; })()),
+          credentials: "same-origin"
+        }).then(function (r) { if (!r.ok) console.warn("prefs sync failed:", r.status); })
+          .catch(function () {});
+      } catch (e) {}
+    }
+
+    function bindThemePref(id, field, coerce) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var evt = function () {
+        var v = coerce ? coerce(el.value) : el.value;
+        if (field === "theme_default") {
+          /* 让 WB_THEME 立即重读默认值；并把 T.def 推到最新 */
+          if (window.WB_THEME) window.WB_THEME.def = v;
+          if (window.WB_THEME_APPLY) window.WB_THEME_APPLY();
+        } else if (field === "theme_auto") {
+          if (window.WB_THEME) window.WB_THEME.auto = v;
+          if (window.WB_THEME_APPLY) window.WB_THEME_APPLY();
+        } else if (field === "theme_dark_start") {
+          if (window.WB_THEME) window.WB_THEME.start = parseInt(v, 10) || 0;
+          if (window.WB_THEME_APPLY) window.WB_THEME_APPLY();
+        } else if (field === "theme_dark_end") {
+          if (window.WB_THEME) window.WB_THEME.end = parseInt(v, 10) || 0;
+          if (window.WB_THEME_APPLY) window.WB_THEME_APPLY();
+        }
+        syncFieldToServer(field, v);
+        flash("已保存" + (el.previousElementSibling ? "「" + el.previousElementSibling.textContent + "」" : ""), "success");
+      };
+      el.addEventListener("change", evt);
+      el.addEventListener("input", field.indexOf("dark_") === 0 ? evt : null);
+      el.addEventListener("wb:theme-pref-applied", function (ev) {
+        if (ev && ev.detail && ev.detail.value != null && el.value !== ev.detail.value) el.value = ev.detail.value;
+      });
+    }
+    bindThemePref("selThemeDefault", "theme_default");
+    bindThemePref("selThemeAuto", "theme_auto");
+    bindThemePref("inpDarkStart", "theme_dark_start", function (v) { var n = parseInt(v, 10); return isNaN(n) ? 0 : n; });
+    bindThemePref("inpDarkEnd", "theme_dark_end", function (v) { var n = parseInt(v, 10); return isNaN(n) ? 0 : n; });
+
+    /* 3. 监听 storage：其它标签切换时也同步过来（即使跨 tab 都开 settings） */
+    window.addEventListener("storage", function (ev) {
+      if (!ev.key) return;
+      if (ev.key === "wb-palette" && selPal) {
+        var v = localStorage.getItem("wb-palette");
+        if (v && selPal.value !== v) selPal.value = v;
+      }
+      if (ev.key === "wb-theme" && window.WB_THEME_SYNC_FORMS) {
+        window.WB_THEME_SYNC_FORMS(window.WB_THEME_GET ? window.WB_THEME_GET() : null);
+      }
+    });
+  })();
+</script>
+<script>
+  /* 保存后立即广播（前端把服务端最新 prefs 同步到 localStorage 与页面） */
+  (function () {
+    var latest = {{ broadcast_prefs | tojson if broadcast_prefs else 'null' }};
+    if (!latest) return;
+    function fire(key, value) {
+      try {
+        var prev = localStorage.getItem(key);
+        localStorage.setItem(key, value);
+        if (prev !== value) {
+          /* 自己写自己读 storage 不会触发事件 → 手动调对应 apply */
+          if (key === 'wb-palette' && window.WB_PALETTE_APPLY) window.WB_PALETTE_APPLY(value, false);
+          if (key === 'wb-theme' && window.WB_THEME_APPLY) window.WB_THEME_APPLY();
+        }
+      } catch (e) {}
+    }
+    if (latest.color_palette) fire('wb-palette', latest.color_palette);
+    if (latest.theme_default) {
+      var cur = (effective_value = localStorage.getItem('wb-theme'));
+      /* 仅在用户没手动选过 light/dark 时，才把默认主题刷进本地 */
+      if (!cur || cur === 'auto') {
+        /* 不动 wb-theme（auto），交给 theme.apply 读最新的 T.def（已经由 broadcast_prefs 设过） */
+      }
+    }
+    if (window.WB_THEME_APPLY_SERVER_PREFS) window.WB_THEME_APPLY_SERVER_PREFS(latest);
+  })();
+</script>
+<script>
+  /* 自定义背景图：上传 → 回填 URL / 实时预览 / 滑杆百分比 */
+  (function () {
+    var imgInput = document.getElementById("bgImgInput");
+    var fileBtn = document.getElementById("bgFileBtn");
+    var fileInput = document.getElementById("bgFileInput");
+    var preview = document.getElementById("bgPreview");
+    var clearBtn = document.getElementById("bgClearBtn");
+    var opRange = document.getElementById("bgOpacity");
+    var opLabel = document.getElementById("bgOpacityLabel");
+    if (!imgInput || !preview) return;
+    var csrf = (document.querySelector('input[name="csrf_token"]') || {}).value || "";
+
+    function renderPreview() {
+      var url = (imgInput.value || "").trim();
+      preview.classList.toggle("empty", !url);
+      var im = preview.querySelector("img");
+      if (url) {
+        if (!im) { im = document.createElement("img"); preview.appendChild(im); }
+        im.src = url;
+        im.alt = "背景图预览";
+      } else if (im) {
+        im.remove();
+      }
+    }
+
+    if (opRange && opLabel) {
+      opRange.addEventListener("input", function () { opLabel.textContent = opRange.value + "%"; });
+    }
+
+    fileBtn.addEventListener("click", function () { fileInput.click(); });
+    fileInput.addEventListener("change", function () {
+      if (!fileInput.files.length) return;
+      var fd = new FormData();
+      fd.append("file", fileInput.files[0]);
+      fd.append("csrf_token", csrf);
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/upload");
+      xhr.onload = function () {
+        var data = {};
+        try { data = JSON.parse(xhr.responseText); } catch (e) {}
+        if (xhr.status === 200 && data.ok) {
+          imgInput.value = data.url;
+          renderPreview();
+          flashHint("已上传，记得点底部「保存设置」生效", "success");
+        } else {
+          flashHint(data.msg || "上传失败", "error");
+        }
+        fileInput.value = "";
+      };
+      xhr.onerror = function () { flashHint("网络异常，上传失败", "error"); fileInput.value = ""; };
+      xhr.send(fd);
+    });
+    imgInput.addEventListener("input", renderPreview);
+    clearBtn.addEventListener("click", function () {
+      imgInput.value = "";
+      renderPreview();
+      flashHint("已移除背景图，点底部「保存设置」生效", "success");
+    });
+
+    function flashHint(msg, cat) {
+      var box = document.createElement("div");
+      box.className = "flash-msg " + (cat || "success");
+      box.setAttribute("data-auto-hide", "");
+      box.textContent = msg;
+      document.body.appendChild(box);
+      setTimeout(function () {
+        box.style.transition = "opacity 0.4s";
+        box.style.opacity = "0";
+        setTimeout(function () { box.remove(); }, 450);
+      }, 2800);
+    }
+  })();
+</script>
+{% endblock %}

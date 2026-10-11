@@ -1,0 +1,63 @@
+{% extends "admin/base.html" %}
+{% block title %}分类管理{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>分类管理</h1>
+    <p class="sub">共 {{ cats | length }} 个分类</p>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="panel glass">
+    <h2>{{ '编辑分类' if edit_cat else '新建分类' }}</h2>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-item">
+        <label>名称 <span style="color: #d14a2e;">*</span></label>
+        <input type="text" name="name" required value="{{ edit_cat.name if edit_cat else '' }}" placeholder="例如：技术">
+      </div>
+      <div class="form-item">
+        <label>别名（Slug，留空自动生成）</label>
+        <input type="text" name="slug" value="{{ edit_cat.slug if edit_cat else '' }}" placeholder="例如：tech">
+      </div>
+      <div class="form-item">
+        <label>描述</label>
+        <input type="text" name="description" value="{{ edit_cat.description if edit_cat else '' }}" placeholder="分类简介（选填）">
+      </div>
+      <div class="btn-row">
+        <button class="btn" type="submit">保存</button>
+        {% if edit_cat %}<a class="btn ghost" href="{{ url_for('admin.categories') }}">取消编辑</a>{% endif %}
+      </div>
+    </form>
+  </div>
+
+  <div class="panel glass">
+    <h2>分类列表</h2>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>名称</th><th>文章数</th><th>操作</th></tr></thead>
+        <tbody>
+          {% for c in cats %}
+          <tr>
+            <td class="cell-title">{{ c.name }}</td>
+            <td class="cell-muted">{{ c.post_count }}</td>
+            <td>
+              <div class="btn-row">
+                <a class="btn sm ghost" href="{{ url_for('admin.categories', edit=c.id) }}">编辑</a>
+                <form method="post" action="{{ url_for('admin.category_delete', cid=c.id) }}" data-confirm="删除分类后，该分类下的文章将变为未分类。确定删除吗？">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn sm danger-ghost" type="submit">删除</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3" style="text-align:center; color: var(--text-3); padding: 24px;">暂无分类</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

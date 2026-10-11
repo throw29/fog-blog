@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>后台登录 · {{ SITE.site_name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body style="background: linear-gradient(160deg, #fdf3e7 0%, #fbead6 50%, #fbe3d0 100%);">
+  <div class="login-wrap">
+    <div class="login-card glass">
+      <div class="brand">
+        <span class="brand-mark">雾</span>
+        <div>
+          <h1>{{ SITE.site_name }}</h1>
+          <p class="sub" style="margin: 2px 0 0;">管理后台登录</p>
+        </div>
+      </div>
+
+      {% with msgs = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in msgs %}
+        <div class="flash-msg {{ cat }}" style="position: static; margin-bottom: 14px;">{{ msg }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-item">
+          <label>用户名</label>
+          <input type="text" name="username" required autofocus placeholder="请输入用户名">
+        </div>
+        <div class="form-item">
+          <label>密码</label>
+          <input type="password" name="password" required placeholder="请输入密码">
+        </div>
+        <button class="btn" type="submit">登 录</button>
+        <p style="text-align: center; margin-top: 14px;">
+          <a href="{{ url_for('main.index') }}" style="font-size: 13px; color: var(--text-3);">返回首页</a>
+        </p>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

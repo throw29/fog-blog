@@ -1,0 +1,41 @@
+{% extends "admin/base.html" %}
+{% block title %}独立页面{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>独立页面</h1>
+    <p class="sub">用于「关于我」等固定页面，可在前台导航中显示</p>
+  </div>
+  <a class="btn" href="{{ url_for('admin.page_new') }}">新建页面</a>
+</div>
+
+<div class="panel glass">
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>标题</th><th>别名</th><th>导航显示</th><th>排序</th><th>更新时间</th><th style="width: 150px;">操作</th></tr></thead>
+      <tbody>
+        {% for p in pages %}
+        <tr>
+          <td class="cell-title">{{ p.title }}</td>
+          <td class="cell-muted">/page/{{ p.slug }}</td>
+          <td><span class="badge {{ 'approved' if p.is_show else 'draft' }}">{{ '显示' if p.is_show else '隐藏' }}</span></td>
+          <td class="cell-muted">{{ p.order }}</td>
+          <td class="cell-muted">{{ p.updated_at.strftime('%Y-%m-%d') }}</td>
+          <td>
+            <div class="btn-row">
+              <a class="btn sm ghost" href="{{ url_for('admin.page_edit', pid=p.id) }}">编辑</a>
+              <form method="post" action="{{ url_for('admin.page_delete', pid=p.id) }}" data-confirm="确定删除页面「{{ p.title }}」吗？">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn sm danger-ghost" type="submit">删除</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="text-align:center; color: var(--text-3); padding: 28px;">暂无独立页面</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

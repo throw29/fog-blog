@@ -1,0 +1,35 @@
+{% extends "admin/base.html" %}
+{% block title %}标签管理{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>标签管理</h1>
+    <p class="sub">共 {{ tags | length }} 个标签，标签可在写文章时直接创建</p>
+  </div>
+</div>
+
+<div class="panel glass">
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>标签名</th><th>别名</th><th>文章数</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for t in tags %}
+        <tr>
+          <td class="cell-title">{{ t.name }}</td>
+          <td class="cell-muted">{{ t.slug }}</td>
+          <td class="cell-muted">{{ t.post_count }}</td>
+          <td>
+            <form method="post" action="{{ url_for('admin.tag_delete', tid=t.id) }}" data-confirm="确定删除标签「{{ t.name }}」吗？文章不会受影响。">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn sm danger-ghost" type="submit">删除</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="text-align:center; color: var(--text-3); padding: 24px;">暂无标签</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

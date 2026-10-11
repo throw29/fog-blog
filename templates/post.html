@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} · {{ SITE.site_name }}{% endblock %}
+{% block description %}{{ post.get_summary() }}{% endblock %}
+
+{% block content %}
+<div class="layout">
+  <div>
+    <article class="post-page glass">
+      <h1 class="post-title">{{ post.title }}</h1>
+      <div class="post-meta-lg">
+        {% if post.category %}<span><a class="badge" href="{{ url_for('main.category', slug=post.category.slug) }}">{{ post.category.name }}</a></span>{% endif %}
+        <span>发布于 {{ post.published_at.strftime('%Y-%m-%d %H:%M') }}</span>
+        <span>约 {{ minutes }} 分钟读完</span>
+        <span>{{ post.views }} 阅读</span>
+        <span>{{ post.comment_count }} 评论</span>
+      </div>
+
+      {% if post.cover %}
+      <div class="post-cover"><img src="{{ post.cover }}" alt="{{ post.title }}"></div>
+      {% endif %}
+
+      <div class="post-content" id="postContent">
+        {{ content_html | safe }}
+      </div>
+
+      {% if post.render_mode == 'pdf' and post.pdf_url %}
+      <div class="pdf-article" id="pdfArticle">
+        <div class="pdf-pages" id="pdfPages">
+          <div class="pdf-loading" id="pdfLoading">正在加载 PDF…</div>
+        </div>
+        <div class="pdf-foot">
+          <a class="btn ghost sm" href="{{ post.pdf_url }}" download>下载原 PDF</a>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if post.tags %}
+      <div class="tag-cloud" style="margin-top: 26px;">
+        {% for t in post.tags %}
+        <a href="{{ url_for('main.tag', slug=t.slug) }}"># {{ t.name }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="post-actions">
+        <button class="like-btn" id="likeBtn" data-id="{{ post.id }}" data-liked="{{ '1' if post.id in session.get('liked_posts', []) else '0' }}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.7-10-9.3C.4 8.6 2.6 4.5 6.4 4.5c2.2 0 3.6 1.2 4.6 2.6l1 1.4 1-1.4c1-1.4 2.4-2.6 4.6-2.6 3.8 0 6 4.1 4.4 7.2C19.5 16.3 12 21 12 21z"/></svg>
+          <span id="likeCount">{{ post.likes }}</span> 点赞
+        </button>
+      </div>
+
+      {% if prev_post or next_post %}
+      <div class="post-nav">
+        {% if prev_post %}<a href="{{ url_for('main.post', slug=prev_post.slug) }}">← 上一篇<br>{{ prev_post.title }}</a>{% else %}<span></span>{% endif %}
+        {% if next_post %}<a class="next" href="{{ url_for('main.post', slug=next_post.slug) }}">下一篇 →<br>{{ next_post.title }}</a>{% endif %}
+      </div>
+      {% endif %}
+    </article>
+
+    {% if related %}
+    <div class="related glass" style="margin-top: 22px; padding: 20px 24px;">
+      <h3 style="font-size: 15px; font-weight: 500;">相关推荐</h3>
+      <div class="related-grid">
+        {% for r in related %}
+        <a href="{{ url_for('main.post', slug=r.slug) }}">{{ r.title }}</a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <section class="comment-section glass">
+      <h3>评论（{{ post.comment_count }}）</h3>
+      {% if SITE.comment_allow != '1' %}
+      <p style="color: var(--text-3); font-size: 13px;">评论区已关闭。</p>
+      {% elif not post.allow_comment %}
+      <p style="color: var(--text-3); font-size: 13px;">本文已关闭评论。</p>
+      {% else %}
+      <form class="comment-form" id="commentForm" data-post="{{ post.id }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row">
+          <input type="text" name="nickname" placeholder="昵称" maxlength="20" value="{{ guest_nick }}" required>
+          <input type="email" name="email" placeholder="邮箱（选填）">
+        </div>
+        <p class="comment-login-tip">无需注册即可评论 · 昵称已自动为你取好，可直接修改 · 邮箱选填</p>
+        <div class="comment-toolbar">
+          <button type="button" class="emoji-btn" id="emojiToggle" aria-expanded="false">😊 表情</button>
+          <div class="emoji-panel glass" id="emojiPanel" hidden></div>
+        </div>
+        <textarea name="content" placeholder="写下你的想法...（支持换行，纯文本展示）" required></textarea>
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <button class="btn" type="submit">发表评论</button>
+          <span id="commentTip" style="font-size: 13px; color: var(--text-3);"></span>
+        </div>
+      </form>
+      {% endif %}
+
+      <ul class="comment-list">
+        {% for c in comments %}
+        <li class="comment-item">
+          <div class="comment-avatar">{% if c.user and c.user.avatar %}<img src="{{ c.user.avatar }}" alt="{{ c.nickname }}">{% else %}{{ c.nickname[:1] }}{% endif %}</div>
+          <div class="comment-body">
+            <div class="comment-head">
+              <span class="name">{{ c.nickname }}</span>
+              <span class="time">{{ c.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+              {% if c.post_id == None %}<span class="badge purple">留言板</span>{% endif %}
+            </div>
+            <div class="comment-text">{{ c.content }}</div>
+          </div>
+        </li>
+        {% else %}
+        <li class="comment-empty">还没有评论，来抢沙发吧～</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+
+  <div class="toc-wrap">
+    {% if toc %}
+    <nav class="toc glass">
+      <h3>文章目录</h3>
+      <ul>
+        {% for item in toc recursive %}
+        <li class="level-{{ item.level }}">
+          <a href="#{{ item.id }}">{{ item.name }}</a>
+          {% if item.children %}<ul>{{ loop(item.children) }}</ul>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </nav>
+    {% else %}
+    {% include "sidebar.html" %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* 评论表情面板：点击表情插入光标处 */
+(function () {
+  var EMOJIS = ("😀 😄 😁 😆 😅 😂 🤣 😊 😇 🙂 😉 😍 🥰 😘 😜 🤪 😎 🥳 " +
+    "😭 😢 😡 🥺 😴 🤔 🤗 🤫 🤭 🫡 😺 👍 👎 👏 🙏 🤝 💪 👌 ✌️ 🤞 👋 🤙 " +
+    "❤️ 🧡 💛 💚 💙 💜 🖤 🤍 💯 ✨ 🔥 🎉 🎊 ⭐ 🌟 💫 🌈 ☀️ 🌙 ⚡ ❄️ 🍀 " +
+    "🍎 🍔 🍕 ☕ 🍺 🎂 🍰 🎮 🎵 📖 ✏️ 📌 💡 ⏰ ❗ ❓ ✅ ❌ ⚠️ ➡️ 🚀").split(" ");
+  var panel = document.getElementById("emojiPanel");
+  var toggle = document.getElementById("emojiToggle");
+  if (!panel || !toggle) return;
+
+  var frag = document.createDocumentFragment();
+  EMOJIS.forEach(function (e) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = e;
+    b.setAttribute("aria-label", "插入 " + e);
+    b.addEventListener("click", function () {
+      var ta = document.getElementById("commentForm")
+        ? document.getElementById("commentForm").querySelector("textarea[name=content]")
+        : null;
+      if (!ta) return;
+      var s = ta.selectionStart == null ? ta.value.length : ta.selectionStart;
+      var ed = ta.selectionEnd == null ? s : ta.selectionEnd;
+      ta.value = ta.value.slice(0, s) + e + ta.value.slice(ed);
+      var pos = s + e.length;
+      ta.focus();
+      try { ta.setSelectionRange(pos, pos); } catch (err) {}
+      // 选完表情后自动收起面板
+      panel.hidden = true;
+      toggle.setAttribute("aria-expanded", "false");
+    });
+    frag.appendChild(b);
+  });
+  panel.appendChild(frag);
+
+  toggle.addEventListener("click", function (ev) {
+    ev.stopPropagation();
+    var hide = !panel.hidden;
+    panel.hidden = hide;
+    toggle.setAttribute("aria-expanded", String(!hide));
+  });
+  document.addEventListener("click", function (ev) {
+    if (!panel.hidden && !panel.contains(ev.target) && ev.target !== toggle) {
+      panel.hidden = true;
+      toggle.setAttribute("aria-expanded", "false");
+    }
+  });
+})();
+</script>
+{% if post.render_mode == 'pdf' and post.pdf_url %}
+<script src="{{ url_for('static', filename='vendor/pdfjs/pdf.min.js') }}"></script>
+<script>
+/* PDF 原版式阅读：所有页连续渲染，垂直堆叠，像普通文章一样往下滑动（无翻页、无工具栏） */
+(function () {
+  var PDF_URL = {{ post.pdf_url | tojson }};
+  var container = document.getElementById("pdfPages");
+  if (!window.pdfjsLib || !container) return;
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    {{ url_for('static', filename='vendor/pdfjs/pdf.worker.min.js') | tojson }};
+
+  var mainEl = document.querySelector(".pdf-article") ||
+    document.querySelector(".container") || document.body;
+
+  function renderOne(doc, pageNum, beforeEl) {
+    return doc.getPage(pageNum).then(function (pg) {
+      // 取实际正文容器宽度（.pdf-article 所在卡片宽度），按 PDF 原比例适配
+      var avail = (mainEl.clientWidth || 980) - 16;
+      var maxW = Math.min(avail, 960);
+      var vp1 = pg.getViewport({ scale: 1 });
+      var fit = maxW / vp1.width;
+      var vp = pg.getViewport({ scale: fit });
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      var pageDiv = document.createElement("div");
+      pageDiv.className = "pdf-page";
+      var canvas = document.createElement("canvas");
+      pageDiv.appendChild(canvas);
+      // 懒渲染模式下，pageDiv 需插到 sentinel 之前，保持 sentinel 永远在末尾
+      if (beforeEl && beforeEl.parentNode === container) {
+        container.insertBefore(pageDiv, beforeEl);
+      } else {
+        container.appendChild(pageDiv);
+      }
+
+      canvas.width = Math.floor(vp.width * dpr);
+      canvas.height = Math.floor(vp.height * dpr);
+      // 只设 CSS 宽度，高度交给 CSS height:auto 按 canvas 内在比例等比缩放，
+      // 避免内联 height 与 max-width:100% 冲突导致页面被压扁
+      canvas.style.width = Math.floor(vp.width) + "px";
+      canvas.style.maxWidth = "100%";
+      var ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return pg.render({ canvasContext: ctx, viewport: vp }).promise;
+    });
+  }
+
+  // 初始化 loading（带 spinner）
+  var initLoad = function (el, html) { if (el) el.innerHTML = html; };
+
+  pdfjsLib.getDocument({ url: PDF_URL, isEvalSupported: false }).promise.then(function (doc) {
+    var loadEl = document.getElementById("pdfLoading");
+    var total = doc.numPages;
+    var done = 0;        // 已成功渲染（或占位为错误卡）的页数
+    var busy = false;    // fillViewport 重入保护
+    var finished = false;
+    var sentinel = document.createElement("div");
+    sentinel.className = "pdf-sentinel";
+    container.appendChild(sentinel);  // sentinel 永远在末尾
+
+    var showProgress = function () {
+      if (!loadEl || finished) return;
+      if (done >= total) {
+        // 不应该到这里（finished 走 finish()）
+        initLoad(loadEl, '<span class="pdf-loading-spinner"></span>正在完成…');
+      } else {
+        initLoad(
+          loadEl,
+          '<span class="pdf-loading-spinner"></span>已渲染 ' + done + " / " + total + " 页，下滑继续加载…"
+        );
+      }
+    };
+    var finish = function () {
+      if (finished) return;
+      finished = true;
+      if (sentinel && sentinel.parentNode) sentinel.remove();
+      if (loadEl && loadEl.parentNode) loadEl.remove();
+    };
+    var insertError = function (n) {
+      var err = document.createElement("div");
+      err.className = "pdf-page pdf-error";
+      err.dataset.page = n;
+      function setRetry() {
+        err.innerHTML =
+          "第 " + n + " 页渲染失败" +
+          "<button type=\"button\" data-retry=\"" + n + "\">重试</button>";
+        err.querySelector("button").addEventListener("click", onRetry);
+      }
+      function onRetry() {
+        err.querySelector("button").disabled = true;
+        err.innerHTML = '<span class="pdf-loading-spinner"></span>第 ' + n + " 页重试中…";
+        renderOne(doc, n, err)
+          .then(function () {
+            err.remove();
+            if (typeof fillViewport === "function") fillViewport();
+            showProgress();
+          })
+          .catch(function () {
+            setRetry();  // 重新绑定按钮
+          });
+      }
+      setRetry();
+      // 错误卡占位插到 sentinel 之前，保持顺序
+      container.insertBefore(err, sentinel);
+    };
+
+    // 渲染"第 done+1 页"（成功或失败占位）
+    function renderNextPage() {
+      if (done >= total) { finish(); return Promise.resolve(); }
+      var n = done + 1;
+      done = n;
+      showProgress();
+      return renderOne(doc, n, sentinel).then(function () {
+        // 不在这里 ++ done（避免错误重试时重复计数）
+      });
+    }
+
+    // 填满视口（含预渲染余量）：sentinel 进入视口 + 800px 缓冲时循环渲染直到 sentinel 离开
+    function fillViewport() {
+      if (busy || finished) return;
+      busy = true;
+      (function step() {
+        if (finished) { busy = false; return; }
+        if (done >= total) { busy = false; finish(); return; }
+        // 哨兵是否仍在"应继续渲染"区（视口内 + 下方 800px 预渲染）
+        var top = sentinel.getBoundingClientRect().top;
+        if (top <= window.innerHeight + 800) {
+          renderNextPage()
+            .then(function () { step(); })
+            .catch(function () {
+              // renderNextPage 内部没 catch，理论不会到这里；保底处理
+              var n = done;  // renderNextPage 已 ++ done
+              insertError(n);
+              step();
+            });
+        } else {
+          busy = false;  // 离开"应渲染区"，等 IO 回调再次触发
+        }
+      })();
+    }
+
+    // 初始化 loading 文案
+    initLoad(loadEl, '<span class="pdf-loading-spinner"></span>正在加载 PDF…');
+    showProgress();
+
+    if ("IntersectionObserver" in window) {
+      var io = new IntersectionObserver(
+        function (entries) {
+          for (var i = 0; i < entries.length; i++) {
+            if (entries[i].isIntersecting) { fillViewport(); break; }
+          }
+        },
+        { rootMargin: "0px 0px 800px 0px" }  // 视口下方 800px 触发预渲染
+      );
+      io.observe(sentinel);
+      // 首次进入：填满当前视口
+      fillViewport();
+    } else {
+      // 老浏览器兜底：串行渲染所有页
+      (function loop() {
+        if (done >= total) { finish(); return; }
+        renderNextPage().then(loop).catch(function () {
+          var n = done;
+          insertError(n);
+          loop();
+        });
+      })();
+    }
+  }).catch(function () {
+    container.innerHTML =
+      '<div class="pdf-loading">PDF 加载失败，可点击下方"下载原 PDF"查看。</div>';
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

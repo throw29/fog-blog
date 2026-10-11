@@ -1,0 +1,115 @@
+{% extends "admin/base.html" %}
+{% block title %}SSL 证书{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>SSL 证书</h1>
+    <p class="sub">上传 / 更新 HTTPS 证书，nginx 自动 reload；旧证书保留作为回滚备份。</p>
+  </div>
+  <div style="display: flex; gap: 10px;">
+    <a class="btn" href="{{ url_for('admin.ssl_upload') }}">上传 / 更新证书</a>
+  </div>
+</div>
+
+{% if wrapper_meta.dry_run %}
+<div class="panel glass" style="border-left: 4px solid var(--warning-1, #d2a16b); max-width: 760px;">
+  <strong>开发模式 / DRY-RUN</strong>：检测到 <code>BLOG_SSL_DRY_RUN=1</code> 环境变量。
+  本页所有「上传 / 删除」操作不会写盘也不会 reload nginx，仅用于本地回归测试。
+  生产部署前移除该环境变量并跑 <code>sudo bash deploy/install.sh</code> 部署 wrapper。
+</div>
+{% elif not wrapper_meta.wrapper_exists %}
+<div class="panel glass" style="border-left: 4px solid var(--error-1, #c45c4f); max-width: 760px;">
+  <strong>未检测到 wrapper</strong>：<code>{{ wrapper_meta.wrapper_path }}</code> 不存在。
+  请到服务器跑 <code>sudo bash deploy/install.sh</code>（会自动部署 wrapper 与 sudoers），
+  然后刷新本页。
+</div>
+{% endif %}
+
+{# 当前激活证书 #}
+<div class="panel glass" style="max-width: 760px;">
+  <h2>当前证书</h2>
+  {% if active %}
+    <div class="info-grid">
+      <div class="info-row"><span class="info-key">域名</span><span class="info-val">{{ active.domain }}</span></div>
+      <div class="info-row"><span class="info-key">状态</span><span class="info-val">
+        {% if active.days_to_expire is not none and active.days_to_expire < 0 %}
+          <em class="badge pending">已过期</em>
+        {% elif active.days_to_expire is not none and active.days_to_expire < 30 %}
+          <em class="badge pending">即将过期 {{ active.days_to_expire }} 天</em>
+        {% else %}
+          <em class="badge approved">正常</em>
+        {% endif %}
+      </span></div>
+      <div class="info-row"><span class="info-key">签发者</span><span class="info-val">{{ active.issuer }}</span></div>
+      <div class="info-row"><span class="info-key">覆盖域名 (SAN)</span><span class="info-val">
+        {% for s in active.sans_list %}<code>{{ s }}</code>{% if not loop.last %} · {% endif %}{% endfor %}
+      </span></div>
+      <div class="info-row"><span class="info-key">生效时间</span><span class="info-val">{{ active.not_before.strftime('%Y-%m-%d') if active.not_before else '-' }}</span></div>
+      <div class="info-row"><span class="info-key">过期时间</span><span class="info-val">
+        {{ active.not_after.strftime('%Y-%m-%d') if active.not_after else '-' }}
+        {% if active.days_to_expire is not none and active.days_to_expire >= 0 %}
+          （还有 {{ active.days_to_expire }} 天）
+        {% endif %}
+      </span></div>
+      <div class="info-row"><span class="info-key">证书路径</span><span class="info-val"><code>{{ active.cert_path }}</code></span></div>
+      <div class="info-row"><span class="info-key">私钥路径</span><span class="info-val"><code>{{ active.key_path }}</code></span></div>
+      <div class="info-row"><span class="info-key">操作人</span><span class="info-val">{{ active.created_by or '-' }}</span></div>
+      <div class="info-row"><span class="info-key">更新时间</span><span class="info-val">{{ active.updated_at.strftime('%Y-%m-%d %H:%M') }}</span></div>
+    </div>
+    <form method="post" action="{{ url_for('admin.ssl_delete') }}" style="margin-top: 16px;"
+          data-confirm="确定停用 HTTPS 吗？站点将回退到 HTTP，原证书文件保留在 /etc/nginx/ssl/{{ active.domain }}/">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="domain" value="{{ active.domain }}">
+      <button class="btn ghost" type="submit">停用 HTTPS（回退 HTTP）</button>
+    </form>
+  {% else %}
+    <p style="color: var(--text-3);">尚未上传证书，站点当前仅 HTTP。
+       <a href="{{ url_for('admin.ssl_upload') }}">现在上传 →</a></p>
+    <details style="margin-top: 16px;">
+      <summary style="cursor: pointer; color: var(--text-2);">如何获取证书？</summary>
+      <div style="padding: 12px 0; line-height: 1.8;">
+        <strong>① 自动（推荐）</strong>：服务器上跑 <code>certbot certonly --nginx -d your-domain.com</code>，把生成的 <code>fullchain.pem</code> 与 <code>privkey.pem</code> 粘到下方表单。<br>
+        <strong>② 商业证书</strong>：从 CA 申请 → 下载 nginx 格式（含 bundle chain）→ 粘贴到下方。<br>
+        <strong>③ 自签</strong>：仅供测试，浏览器会报「不受信任」。
+      </div>
+    </details>
+  {% endif %}
+</div>
+
+{# 历史 #}
+{% if history %}
+<div class="panel glass" style="max-width: 760px; margin-top: 16px;">
+  <h2>证书历史（最近 20 条）</h2>
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>域名</th><th>状态</th><th>过期</th><th>签发者</th><th>操作人</th><th>更新时间</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in history %}
+        <tr>
+          <td>{{ h.domain }}{% if h.is_active %} <span class="badge approved">当前</span>{% endif %}</td>
+          <td>{{ h.status_label }}</td>
+          <td>{{ h.not_after.strftime('%Y-%m-%d') if h.not_after else '-' }}</td>
+          <td class="cell-muted">{{ h.issuer }}</td>
+          <td class="cell-muted">{{ h.created_by or '-' }}</td>
+          <td class="cell-muted">{{ h.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<style>
+.info-grid { display: grid; gap: 10px; }
+.info-row { display: grid; grid-template-columns: 140px 1fr; gap: 16px; }
+.info-key { color: var(--text-3); font-size: 13px; }
+.info-val { color: var(--text-1); font-size: 14px; }
+.info-val code { font-size: 12.5px; background: rgba(0,0,0,0.06); padding: 1px 6px; border-radius: 4px; }
+[data-theme="dark"] .info-val code { background: rgba(255,255,255,0.08); }
+</style>
+{% endblock %}
